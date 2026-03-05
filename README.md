@@ -261,26 +261,46 @@ python seed_data/seed_dynamodb.py \
 
 ### Prerequisites
 
-- AWS Account
-- AWS SAM CLI
-- Python 3.11+
+- **AWS Account** with permissions for: Lambda, API Gateway, DynamoDB, Secrets Manager, IAM, CloudFormation
+- **Python 3.11** (required for SAM CLI compatibility; Python 3.13+ has pydantic issues with SAM)
+- **AWS CLI** configured with a profile (`aws configure --profile your-profile`)
+- **Docker** (optional, for `sam local` testing)
 
-### Deploy to AWS
+### Step 1: Deploy Infrastructure
 
 ```bash
-# Create virtualenv with Python 3.11 (required for SAM CLI)
+# Clone the repository
+git clone https://github.com/iracic82/Mist-API-mockup.git
+cd Mist-API-mockup
+
+# Create virtualenv with Python 3.11 (SAM CLI requires <=3.12)
 python3.11 -m venv venv-sam
 source venv-sam/bin/activate
 pip install aws-sam-cli
 
-# Build
+# Build the SAM application
 sam build
 
-# Deploy
+# Deploy (interactive guided mode — sets stack name, region, etc.)
 sam deploy --guided --profile your-profile --region eu-west-1
 ```
 
-### Store API Key
+The guided deploy will ask for:
+- **Stack Name**: `mist-mock-api`
+- **AWS Region**: your preferred region
+- **Parameter Environment**: `prod` or `dev`
+- **Confirm changes**: Yes
+- **Allow SAM CLI IAM role creation**: Yes
+- **Save arguments to samconfig.toml**: Yes
+
+After deployment, note the outputs:
+- `ApiEndpoint` — your API Gateway URL (e.g., `https://xxxxx.execute-api.eu-west-1.amazonaws.com/Prod`)
+- `ConfigTableName` — DynamoDB config table
+- `DataTableName` — DynamoDB data table
+
+### Step 2: Store API Key
+
+Create a secret in AWS Secrets Manager with your desired API key:
 
 ```bash
 aws secretsmanager create-secret \
@@ -290,27 +310,136 @@ aws secretsmanager create-secret \
     --profile your-profile
 ```
 
-### Seed Data
+This key is what clients will pass in `Authorization: Token <key>` headers.
+
+### Step 3: Seed Data
 
 ```bash
-# Install dependencies
+# Create a separate venv for seeding (can use any Python 3.x)
 python3 -m venv venv
 source venv/bin/activate
 pip install boto3
 
-# Seed
+# Seed the campus topology
 python seed_data/seed_dynamodb.py \
     --profile your-profile \
     --region eu-west-1 \
     --topology campus
+
+# To reseed (clear existing data first)
+python seed_data/seed_dynamodb.py \
+    --profile your-profile \
+    --region eu-west-1 \
+    --clear
 ```
 
-### Set Up Custom Domain (Optional)
+### Step 4: Verify Deployment
 
-1. Request ACM certificate for your domain
-2. Create API Gateway custom domain or CloudFront distribution
-3. Create Route 53 alias record
-4. (Optional) Add WAF WebACL for protection
+```bash
+API_URL="https://xxxxx.execute-api.eu-west-1.amazonaws.com/Prod"
+API_KEY="your-api-key-here"
+
+# Health check (no auth required)
+curl -s $API_URL/health
+
+# Get user/org info
+curl -s -H "Authorization: Token $API_KEY" $API_URL/api/v1/self
+
+# List sites (use org_id from /self response)
+curl -s -H "Authorization: Token $API_KEY" "$API_URL/api/v1/orgs/{org_id}/sites?limit=5&page=1"
+
+# List devices for a site
+curl -s -H "Authorization: Token $API_KEY" "$API_URL/api/v1/sites/{site_id}/stats/devices"
+```
+
+### Step 5: Custom Domain (Optional)
+
+```bash
+DOMAIN="your-api.yourdomain.com"
+REGION="eu-west-1"
+PROFILE="your-profile"
+API_ID="xxxxx"  # from ApiEndpoint output
+
+# 1. Request ACM certificate
+aws acm request-certificate \
+    --domain-name $DOMAIN \
+    --validation-method DNS \
+    --region $REGION --profile $PROFILE
+
+# 2. Add the DNS validation CNAME record to your hosted zone
+#    (check output of: aws acm describe-certificate --certificate-arn <arn>)
+
+# 3. Wait for validation
+aws acm wait certificate-validated --certificate-arn <arn> --region $REGION --profile $PROFILE
+
+# 4. Create API Gateway custom domain
+aws apigateway create-domain-name \
+    --domain-name $DOMAIN \
+    --regional-certificate-arn <arn> \
+    --endpoint-configuration types=REGIONAL \
+    --region $REGION --profile $PROFILE
+
+# 5. Map API to custom domain
+aws apigateway create-base-path-mapping \
+    --domain-name $DOMAIN \
+    --rest-api-id $API_ID \
+    --stage Prod \
+    --region $REGION --profile $PROFILE
+
+# 6. Create Route 53 A record (alias to the regional domain name from step 4 output)
+#    regionalDomainName → d-xxxxx.execute-api.eu-west-1.amazonaws.com
+#    regionalHostedZoneId → use as AliasTarget.HostedZoneId
+```
+
+### Step 6: CloudFront + WAF (Optional)
+
+For production-grade deployments with edge caching and DDoS protection:
+
+```bash
+# 1. Request ACM cert in us-east-1 (required for CloudFront)
+aws acm request-certificate \
+    --domain-name $DOMAIN \
+    --validation-method DNS \
+    --region us-east-1 --profile $PROFILE
+
+# 2. Create WAF WebACL (must be in us-east-1 for CloudFront scope)
+aws wafv2 create-web-acl \
+    --name "MistMockAPI-WAF" \
+    --scope CLOUDFRONT \
+    --region us-east-1 --profile $PROFILE \
+    --default-action '{"Allow":{}}' \
+    --visibility-config '{"SampledRequestsEnabled":true,"CloudWatchMetricsEnabled":true,"MetricName":"MistMockAPIWAF"}' \
+    --rules '[
+      {"Name":"CommonRules","Priority":1,"Statement":{"ManagedRuleGroupStatement":{"VendorName":"AWS","Name":"AWSManagedRulesCommonRuleSet"}},"OverrideAction":{"None":{}},"VisibilityConfig":{"SampledRequestsEnabled":true,"CloudWatchMetricsEnabled":true,"MetricName":"CommonRules"}},
+      {"Name":"BadInputs","Priority":2,"Statement":{"ManagedRuleGroupStatement":{"VendorName":"AWS","Name":"AWSManagedRulesKnownBadInputsRuleSet"}},"OverrideAction":{"None":{}},"VisibilityConfig":{"SampledRequestsEnabled":true,"CloudWatchMetricsEnabled":true,"MetricName":"BadInputs"}},
+      {"Name":"IPReputation","Priority":3,"Statement":{"ManagedRuleGroupStatement":{"VendorName":"AWS","Name":"AWSManagedRulesAmazonIpReputationList"}},"OverrideAction":{"None":{}},"VisibilityConfig":{"SampledRequestsEnabled":true,"CloudWatchMetricsEnabled":true,"MetricName":"IPReputation"}},
+      {"Name":"RateLimit","Priority":4,"Statement":{"RateBasedStatement":{"Limit":2000,"AggregateKeyType":"IP"}},"Action":{"Block":{}},"VisibilityConfig":{"SampledRequestsEnabled":true,"CloudWatchMetricsEnabled":true,"MetricName":"RateLimit"}}
+    ]'
+
+# 3. Create CloudFront distribution pointing to API Gateway origin
+#    - Origin: xxxxx.execute-api.eu-west-1.amazonaws.com with OriginPath /Prod
+#    - ViewerProtocolPolicy: https-only
+#    - CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad (CachingDisabled)
+#    - OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac (AllViewerExceptHostHeader)
+#    - Attach WAF WebACL ARN and ACM certificate
+
+# 4. Update Route 53 to point to CloudFront
+#    - Change A alias from API Gateway to CloudFront domain
+#    - CloudFront hosted zone ID is always Z2FDTNDATAQYW2
+```
+
+### Running Tests
+
+```bash
+source venv/bin/activate
+pip install pytest moto boto3
+
+# Run all tests (20 tests)
+python -m pytest tests/ -v
+
+# Tests use STRICT_AUTH=false (set in tests/conftest.py) to bypass
+# Secrets Manager — no AWS credentials needed for testing
+```
 
 ## API Response Examples
 
