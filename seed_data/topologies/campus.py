@@ -224,9 +224,10 @@ def generate_campus_topology(seed: int = 42) -> dict:
             site_id=site_id,
             org_id=org_id,
             config=sc["devices"],
-            network_octet=10 + i,
+            network_octet=99,
             map_ids=map_ids,
             seed=seed,
+            site_index=i + 1,
         )
         device_stats.extend(site_devices)
 

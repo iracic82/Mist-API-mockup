@@ -73,11 +73,10 @@ class DeviceGenerator:
             prefix = random.choice(["CJ", "JN", "AD"])
             return f"{prefix}{''.join(random.choices(string.digits, k=10))}"
 
-    def _generate_ip(self, network_octet: int, device_index: int) -> str:
-        """Generate a management IP."""
-        third = device_index // 254
+    def _generate_ip(self, network_octet: int, device_index: int, site_index: int = 0) -> str:
+        """Generate a management IP. site_index separates sites into /24 blocks."""
         fourth = (device_index % 254) + 1
-        return f"10.{network_octet}.{third}.{fourth}"
+        return f"10.{network_octet}.{site_index}.{fourth}"
 
     def _get_model_info(self, device_type: str, model: str) -> dict:
         """Get model info from the models list."""
@@ -94,9 +93,10 @@ class DeviceGenerator:
         device_type: str,
         model: str,
         name: str,
-        network_octet: int = 10,
+        network_octet: int = 99,
         device_index: int = 0,
         map_id: str = None,
+        site_index: int = 0,
     ) -> dict:
         """
         Generate device stats matching Mist API format.
@@ -107,7 +107,7 @@ class DeviceGenerator:
         model_info = self._get_model_info(device_type, model)
         mac = self._generate_mac()
         serial = self._generate_serial(device_type)
-        ip = self._generate_ip(network_octet, device_index)
+        ip = self._generate_ip(network_octet, device_index, site_index)
         now = int(datetime.utcnow().timestamp())
 
         # 95% of devices are connected
@@ -135,7 +135,7 @@ class DeviceGenerator:
             "ip_stat": {
                 "ip": ip,
                 "netmask": "255.255.255.0",
-                "gateway": f"10.{network_octet}.0.1",
+                "gateway": f"10.{network_octet}.{site_index}.1",
                 "dns": ["8.8.8.8", "8.8.4.4"],
             },
             "fwupdate": {
@@ -272,9 +272,10 @@ class DeviceGenerator:
         site_id: str,
         org_id: str,
         config: dict,
-        network_octet: int = 10,
+        network_octet: int = 99,
         map_ids: list = None,
         seed: int = 42,
+        site_index: int = 0,
     ) -> list[dict]:
         """
         Generate all devices for a site based on configuration.
@@ -300,6 +301,7 @@ class DeviceGenerator:
                 name=gw_config["name"],
                 network_octet=network_octet,
                 device_index=device_index,
+                site_index=site_index,
             )
             devices.append(device)
             device_index += 1
@@ -318,6 +320,7 @@ class DeviceGenerator:
                     name=f"{name_prefix}-{i + 1:02d}",
                     network_octet=network_octet,
                     device_index=device_index,
+                    site_index=site_index,
                 )
                 devices.append(device)
                 device_index += 1
@@ -340,6 +343,7 @@ class DeviceGenerator:
                     network_octet=network_octet,
                     device_index=device_index,
                     map_id=map_id,
+                    site_index=site_index,
                 )
                 devices.append(device)
                 device_index += 1
