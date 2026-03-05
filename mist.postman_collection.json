@@ -1,0 +1,453 @@
+{
+  "info": {
+    "_postman_id": "mist-assets-mapping-collection",
+    "name": "Mist API - Assets Mapping Controller",
+    "description": "Postman collection for the Mist API endpoints used by the assets-mapping-controller project.\n\nIncludes endpoints for:\n- Credential validation\n- Organizations\n- Sites\n- Site Devices\n- Organization Networks\n- Site Wireless Clients\n- Site Wired Clients\n- Site Networks (Derived)\n- Site Maps\n\n**Authentication:**\nSet the `apiKey` collection variable to your Mist API token.\nThe `Authorization` header will be sent as `Token <apiKey>`.\n\n**Paging:**\nUse `limit` (default 1000) and `page` query parameters for paginated endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "Authorization",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "Token {{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.mist.com",
+      "description": "Mist API base URL. Other regions: https://api.gc1.mist.com, https://api.eu.mist.com, https://api.ac5.mist.com",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "description": "Mist API token. Used in Authorization header as: Token <apiKey>",
+      "type": "string"
+    },
+    {
+      "key": "org_id",
+      "value": "",
+      "description": "Organization ID (UUID). Obtained from /api/v1/self privileges[].org_id",
+      "type": "string"
+    },
+    {
+      "key": "site_id",
+      "value": "",
+      "description": "Site ID (UUID). Obtained from listOrgSites response",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Validation",
+      "description": "Credential validation endpoints",
+      "item": [
+        {
+          "name": "Validate Credentials (Get Self)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox",
+                "description": "Required custom user-agent header"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/self",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "self"]
+            },
+            "description": "Validates API credentials by retrieving the current user's profile. Used by the spec validation step.\n\nReturns the authenticated user's email and org privileges (including org_id values needed for other endpoints).\n\nThe `privileges[].org_id` values in the response are used to populate the `org_id` path parameter for organization-scoped requests."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "description": "Organization-level endpoints. An organization is a top-level container for all Mist resources.",
+      "item": [
+        {
+          "name": "Get Organization",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox",
+                "description": "Required custom user-agent header"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orgs/{{org_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "orgs", "{{org_id}}"]
+            },
+            "description": "Get Organization information.\n\nOperationId: `getOrg`\n\nReturns details of the organization identified by `org_id`. The `org_id` can be discovered from `GET /api/v1/self` under `privileges[].org_id`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sites",
+      "description": "Sites endpoints. A site is a physical location where Mist devices are deployed.",
+      "item": [
+        {
+          "name": "List Org Sites",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox",
+                "description": "Required custom user-agent header"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orgs/{{org_id}}/sites?limit=1000&page=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "orgs", "{{org_id}}", "sites"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000",
+                  "description": "Maximum number of records to return (default: 1000)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination (starts at 1)"
+                }
+              ]
+            },
+            "description": "Get list of all sites for an organization.\n\nOperationId: `listOrgSites`\n\nPagination: Use `limit` and `page` query params. Total count is returned in the `X-Page-Total` response header.\n\nThe `id` field from each site is used as `site_id` for site-scoped endpoints."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Site Devices",
+      "description": "Site device stats. A device is physical network hardware (AP, switch, gateway) managed through Mist.",
+      "item": [
+        {
+          "name": "List Site Devices Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox",
+                "description": "Required custom user-agent header"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/stats/devices?type=all&limit=1000&page=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sites", "{{site_id}}", "stats", "devices"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "all",
+                  "description": "Device type filter. Values: all, ap, switch, gateway, mxedge, mxagent (spec uses 'all')"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Device status filter. Values: all, connected, disconnected",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "1000",
+                  "description": "Maximum number of records to return (default: 1000)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination (starts at 1)"
+                }
+              ]
+            },
+            "description": "Get list of all device stats for a site.\n\nOperationId: `listSiteDevicesStats`\n\nThe spec configures `type=all` to retrieve all device types. The `num_clients` field is returned as a JSON type.\n\nPagination: Use `limit` and `page` query params. Total count is returned in the `X-Page-Total` response header."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Organization Networks",
+      "description": "Organization network endpoints. Networks are logical groupings of devices and resources.",
+      "item": [
+        {
+          "name": "List Org Networks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox",
+                "description": "Required custom user-agent header"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orgs/{{org_id}}/networks?limit=1000&page=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "orgs", "{{org_id}}", "networks"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000",
+                  "description": "Maximum number of records to return (default: 1000)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination (starts at 1)"
+                }
+              ]
+            },
+            "description": "Get list of org-level networks.\n\nOperationId: `listOrgNetworks`\n\nNetworks can be used to segment and organize devices based on function, location, or other criteria.\n\nPagination: Use `limit` and `page` query params. Total count is returned in the `X-Page-Total` response header."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Site Wireless Clients",
+      "description": "Wireless client stats per site. Wireless clients connect via Wi-Fi to access points.",
+      "item": [
+        {
+          "name": "List Site Wireless Clients Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox",
+                "description": "Required custom user-agent header"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/stats/clients?wired=false&limit=1000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sites", "{{site_id}}", "stats", "clients"],
+              "query": [
+                {
+                  "key": "wired",
+                  "value": "false",
+                  "description": "Set to false for wireless clients (default: false)"
+                },
+                {
+                  "key": "limit",
+                  "value": "1000",
+                  "description": "Maximum number of records to return (default: 1000)"
+                },
+                {
+                  "key": "start",
+                  "value": "",
+                  "description": "Start time as epoch (seconds). Mutually exclusive with duration.",
+                  "disabled": true
+                },
+                {
+                  "key": "end",
+                  "value": "",
+                  "description": "End time as epoch (seconds). Mutually exclusive with duration.",
+                  "disabled": true
+                },
+                {
+                  "key": "duration",
+                  "value": "",
+                  "description": "Duration (e.g. '1d', '1h', '30m'). Default: '1d'.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get list of all wireless client stats for a site.\n\nOperationId: `listSiteWirelessClientsStats`\n\nThe response is returned under the `results` array (allOf selector in spec). The `mac` field is the primary key.\n\nPagination: Use `limit` query param. Total count is returned in the `X-Page-Total` response header."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Site Wired Clients",
+      "description": "Wired client search per site. Wired clients connect via Ethernet cables.",
+      "item": [
+        {
+          "name": "Search Site Wired Clients",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox",
+                "description": "Required custom user-agent header"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/wired_clients/search?limit=1000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sites", "{{site_id}}", "wired_clients", "search"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000",
+                  "description": "Maximum number of records to return (default: 1000)"
+                },
+                {
+                  "key": "device_mac",
+                  "value": "",
+                  "description": "Filter by device MAC address (e.g. 0123456789ab)",
+                  "disabled": true
+                },
+                {
+                  "key": "mac",
+                  "value": "",
+                  "description": "Filter by client MAC address (e.g. 0123456789ab)",
+                  "disabled": true
+                },
+                {
+                  "key": "ip",
+                  "value": "",
+                  "description": "Filter by client IP address (e.g. 10.3.5.12)",
+                  "disabled": true
+                },
+                {
+                  "key": "port_id",
+                  "value": "",
+                  "description": "Filter by port ID (e.g. ge-1/1/1)",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "",
+                  "description": "Filter by learn source: lldp or mac",
+                  "disabled": true
+                },
+                {
+                  "key": "vlan",
+                  "value": "",
+                  "description": "Filter by VLAN (e.g. 10)",
+                  "disabled": true
+                },
+                {
+                  "key": "manufacture",
+                  "value": "",
+                  "description": "Filter by manufacturer (e.g. Juniper-Mist)",
+                  "disabled": true
+                },
+                {
+                  "key": "text",
+                  "value": "",
+                  "description": "Search by hostname or MAC (e.g. client-hostname)",
+                  "disabled": true
+                },
+                {
+                  "key": "nacrule_id",
+                  "value": "",
+                  "description": "Filter by NAC rule ID (e.g. 8bfc2490-d726-3587-038d-cb2e71bd2330)",
+                  "disabled": true
+                },
+                {
+                  "key": "dhcp_hostname",
+                  "value": "",
+                  "description": "Filter by DHCP hostname",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Search for wired clients at a site.\n\nOperationId: `searchSiteWiredClients`\n\nThe response is returned under the `results` array (allOf selector in spec). The `mac` field is the primary key.\n\nPagination: Uses `limit` query param and link-based pagination. Next page URL is found in the `next` field of the response body."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Site Networks (Derived)",
+      "description": "Derived networks for a site. Resolves site-level variables applied to network configurations.",
+      "item": [
+        {
+          "name": "List Site Networks Derived",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox",
+                "description": "Required custom user-agent header"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/networks/derived?resolve=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sites", "{{site_id}}", "networks", "derived"],
+              "query": [
+                {
+                  "key": "resolve",
+                  "value": "true",
+                  "description": "Whether to resolve site variables (spec sets this to true)"
+                }
+              ]
+            },
+            "description": "Get the list of derived networks for a site.\n\nOperationId: `listSiteNetworksDerived`\n\nDerived networks apply site-level variables to the organization network definitions. The spec configures `resolve=true`.\n\nThe `id` field is the primary key."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Site Maps",
+      "description": "Site map endpoints. Maps represent floor plans and layouts of a site.",
+      "item": [
+        {
+          "name": "List Site Maps",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox",
+                "description": "Required custom user-agent header"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/maps?limit=1000&page=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sites", "{{site_id}}", "maps"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000",
+                  "description": "Maximum number of records to return (default: 1000)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination (starts at 1)"
+                }
+              ]
+            },
+            "description": "Get list of maps for a site.\n\nOperationId: `listSiteMaps`\n\nMaps represent floor plans or layouts of a site, including geographical coordinates, dimensions, and visual overlays.\n\nThe `id` field is the primary key. The spec overrides field types: `ppm`, `origin_x`, and `origin_y` are cast to float64.\n\nPagination: Use `limit` and `page` query params. Total count is returned in the `X-Page-Total` response header."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

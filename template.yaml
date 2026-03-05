@@ -1,0 +1,243 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Mock Juniper Mist API for InfoBlox AssetInsights Testing
+  Simulates Mist Orchestrator endpoints with realistic data
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.11
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        CONFIG_TABLE: !Ref ConfigTable
+        DATA_TABLE: !Ref DataTable
+        DEFAULT_TOPOLOGY: campus
+        LOG_LEVEL: INFO
+        API_KEY_SECRET_NAME: mist-mock-api/api-key
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - prod
+    Description: Deployment environment
+
+Resources:
+  # ============================================
+  # DynamoDB Tables
+  # ============================================
+
+  ConfigTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "MistMock_Config_${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      Tags:
+        - Key: Application
+          Value: MistMockAPI
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Owner
+          Value: iracic@infoblox.com
+
+  DataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "MistMock_Data_${Environment}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Application
+          Value: MistMockAPI
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Owner
+          Value: iracic@infoblox.com
+
+  # ============================================
+  # Lambda Function
+  # ============================================
+
+  MistMockFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "MistMockAPI-${Environment}"
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Description: Mock Mist API Lambda function
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConfigTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DataTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:mist-mock-api/api-key-*"
+      Events:
+        # Mist API Endpoints
+        GetSelf:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/self
+            Method: GET
+        GetOrganization:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/orgs/{org_id}
+            Method: GET
+        ListOrgSites:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/orgs/{org_id}/sites
+            Method: GET
+        ListSiteDevicesStats:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/sites/{site_id}/stats/devices
+            Method: GET
+        ListOrgNetworks:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/orgs/{org_id}/networks
+            Method: GET
+        ListSiteWirelessClientsStats:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/sites/{site_id}/stats/clients
+            Method: GET
+        SearchSiteWiredClients:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/sites/{site_id}/wired_clients/search
+            Method: GET
+        ListSiteNetworksDerived:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/sites/{site_id}/networks/derived
+            Method: GET
+        ListSiteMaps:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/sites/{site_id}/maps
+            Method: GET
+
+        # Admin Endpoints
+        GetTopologies:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /admin/topologies
+            Method: GET
+        ActivateTopology:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /admin/topology/{name}/activate
+            Method: PUT
+        CreateTopology:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /admin/topology
+            Method: POST
+        GetActiveTopology:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /admin/topology/active
+            Method: GET
+        HealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /health
+            Method: GET
+
+  # ============================================
+  # API Gateway
+  # ============================================
+
+  MistMockApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "MistMockAPI-${Environment}"
+      StageName: Prod
+      Description: Mock Mist API for InfoBlox AssetInsights testing
+      Cors:
+        AllowOrigin: "'*'"
+        AllowHeaders: "'Authorization,Content-Type,X-Mock-Topology'"
+        AllowMethods: "'GET,PUT,POST,OPTIONS'"
+      Auth:
+        DefaultAuthorizer: NONE
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingBurstLimit: 1000
+          ThrottlingRateLimit: 500
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${MistMockApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt MistMockFunction.Arn
+
+  ConfigTableName:
+    Description: DynamoDB Config table name
+    Value: !Ref ConfigTable
+
+  DataTableName:
+    Description: DynamoDB Data table name
+    Value: !Ref DataTable

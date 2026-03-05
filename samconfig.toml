@@ -1,0 +1,25 @@
+# SAM CLI configuration file
+# Deploy with: sam deploy --profile okta-sso
+
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "mist-mock-api"
+region = "eu-west-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Environment=\"prod\""
+image_repositories = []
+
+[default.build.parameters]
+use_container = false
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+
+[default.sync.parameters]
+watch = true
+
+# Profile configuration for SSO
+[default.global.parameters]
+profile = "okta-sso"
