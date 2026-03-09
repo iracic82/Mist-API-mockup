@@ -164,6 +164,12 @@ Resources:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/sites/{site_id}/networks/derived
             Method: ANY
+        GetSiteMap:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/sites/{site_id}/maps/{map_id}
+            Method: ANY
         ListSiteMaps:
           Type: Api
           Properties:

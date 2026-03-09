@@ -50,6 +50,7 @@ sam deploy --profile okta-sso
 | `GET /api/v1/sites/{site_id}/stats/clients` | `clients.list_wireless_clients` | limit-based |
 | `GET /api/v1/sites/{site_id}/wired_clients/search` | `clients.search_wired_clients` | link-based (`next` URL) |
 | `GET /api/v1/sites/{site_id}/networks/derived` | `networks.list_derived_networks` | N/A |
+| `GET /api/v1/sites/{site_id}/maps/{map_id}` | `maps.get_site_map` | N/A |
 | `GET /api/v1/sites/{site_id}/maps` | `maps.list_site_maps` | page-based |
 | Admin routes | `admin.*` | N/A |
 

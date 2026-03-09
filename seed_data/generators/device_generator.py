@@ -96,6 +96,7 @@ class DeviceGenerator:
         network_octet: int = 99,
         device_index: int = 0,
         map_id: str = None,
+        map_data: dict = None,
         site_index: int = 0,
     ) -> dict:
         """
@@ -115,6 +116,33 @@ class DeviceGenerator:
         uptime = float(random.randint(3600, 86400 * 90)) if status == "connected" else 0.0
         last_seen = float(now - (random.randint(0, 300) if status == "connected" else random.randint(3600, 86400 * 3)))
 
+        # Generate x/y in pixel coordinates bounded by the actual map dimensions,
+        # and x_m/y_m in meters using the map's ppm (pixels per meter) ratio.
+        # Keeps a 5% margin from edges so devices aren't placed on walls.
+        if map_id and map_data:
+            map_w = map_data.get("width", 1000)
+            map_h = map_data.get("height", 800)
+            map_w_m = map_data.get("width_m", 60.0)
+            map_h_m = map_data.get("height_m", 45.0)
+            margin_x = map_w * 0.05
+            margin_y = map_h * 0.05
+            x = round(random.uniform(margin_x, map_w - margin_x), 2)
+            y = round(random.uniform(margin_y, map_h - margin_y), 2)
+            # Convert pixel position to meters using the map's scale
+            x_m = round((x / map_w) * map_w_m, 2)
+            y_m = round((y / map_h) * map_h_m, 2)
+        elif map_id:
+            # Fallback if map_data not provided
+            x = round(random.uniform(50.0, 1280.0), 2)
+            y = round(random.uniform(50.0, 1300.0), 2)
+            x_m = round(random.uniform(3.0, 75.0), 2)
+            y_m = round(random.uniform(3.0, 75.0), 2)
+        else:
+            x = None
+            y = None
+            x_m = None
+            y_m = None
+
         device = {
             "id": device_id,
             "site_id": site_id,
@@ -132,6 +160,14 @@ class DeviceGenerator:
             "created_time": float(now - random.randint(86400 * 30, 86400 * 365)),
             "modified_time": float(now - random.randint(0, 86400 * 7)),
             "map_id": map_id,
+            "x": x,
+            "y": y,
+            "x_m": x_m,
+            "y_m": y_m,
+            "height": 0.0,
+            "orientation": random.choice([0, 90, 180, 270]) if map_id else None,
+            "locating": False,
+            "notes": "",
             "ext_ip": f"198.51.100.{random.randint(1, 254)}",
             "ip_stat": {
                 "ip": ip,
@@ -299,11 +335,16 @@ class DeviceGenerator:
         config: dict,
         network_octet: int = 99,
         map_ids: list = None,
+        site_maps: list = None,
         seed: int = 42,
         site_index: int = 0,
     ) -> list[dict]:
         """
         Generate all devices for a site based on configuration.
+
+        Args:
+            site_maps: List of map dicts (with width, height, width_m, height_m)
+                       so device coordinates are bounded to actual map dimensions.
 
         Config format:
             {
@@ -315,8 +356,16 @@ class DeviceGenerator:
         devices = []
         device_index = 0
 
+        # Build map_id → map_data lookup for coordinate correlation
+        maps_by_id = {}
+        if site_maps:
+            for m in site_maps:
+                maps_by_id[m["id"]] = m
+
+        # Gateways go on the first map (server/network room)
         for gw_config in config.get("gateways", []):
             device_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{site_id}-gw-{device_index}-{seed}"))
+            gw_map_id = map_ids[0] if map_ids else None
             device = self.generate_device_stats(
                 device_id=device_id,
                 site_id=site_id,
@@ -326,16 +375,20 @@ class DeviceGenerator:
                 name=gw_config["name"],
                 network_octet=network_octet,
                 device_index=device_index,
+                map_id=gw_map_id,
+                map_data=maps_by_id.get(gw_map_id),
                 site_index=site_index,
             )
             devices.append(device)
             device_index += 1
 
+        # Switches go on the first map (server/network room)
         for sw_config in config.get("switches", []):
             count = sw_config.get("count", 1)
             name_prefix = sw_config.get("name_prefix", "SW")
             for i in range(count):
                 device_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{site_id}-sw-{device_index}-{seed}"))
+                sw_map_id = map_ids[0] if map_ids else None
                 device = self.generate_device_stats(
                     device_id=device_id,
                     site_id=site_id,
@@ -345,6 +398,8 @@ class DeviceGenerator:
                     name=f"{name_prefix}-{i + 1:02d}",
                     network_octet=network_octet,
                     device_index=device_index,
+                    map_id=sw_map_id,
+                    map_data=maps_by_id.get(sw_map_id),
                     site_index=site_index,
                 )
                 devices.append(device)
@@ -355,9 +410,9 @@ class DeviceGenerator:
             name_prefix = ap_config.get("name_prefix", "AP")
             for i in range(count):
                 device_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{site_id}-ap-{device_index}-{seed}"))
-                map_id = None
+                ap_map_id = None
                 if map_ids:
-                    map_id = map_ids[i % len(map_ids)]
+                    ap_map_id = map_ids[i % len(map_ids)]
                 device = self.generate_device_stats(
                     device_id=device_id,
                     site_id=site_id,
@@ -367,7 +422,8 @@ class DeviceGenerator:
                     name=f"{name_prefix}-{i + 1:02d}",
                     network_octet=network_octet,
                     device_index=device_index,
-                    map_id=map_id,
+                    map_id=ap_map_id,
+                    map_data=maps_by_id.get(ap_map_id),
                     site_index=site_index,
                 )
                 devices.append(device)

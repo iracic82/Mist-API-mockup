@@ -3,6 +3,7 @@ Maps endpoint handler for Mock Mist API.
 
 Handles:
 - GET /api/v1/sites/{site_id}/maps
+- GET /api/v1/sites/{site_id}/maps/{map_id}
 """
 
 import json
@@ -31,6 +32,33 @@ def _response(status_code: int, body: Any, extra_headers: dict = None) -> dict:
         "headers": headers,
         "body": json.dumps(body) if body is not None else "",
     }
+
+
+def get_site_map(topology: str, site_id: str, map_id: str) -> dict:
+    """
+    Get a single map by ID.
+
+    Args:
+        topology: Active topology name
+        site_id: Site UUID
+        map_id: Map UUID
+
+    Returns:
+        API Gateway response with the map object
+    """
+    logger.info(f"Getting map {map_id} for site {site_id} in topology {topology}")
+
+    db = DynamoDBClient()
+
+    site = db.get_entity(topology, ENTITY_SITE, site_id)
+    if not site:
+        return _response(404, {"detail": f"Site {site_id} not found"})
+
+    map_data = db.get_entity(topology, ENTITY_MAP, map_id)
+    if not map_data or map_data.get("site_id") != site_id:
+        return _response(404, {"detail": f"Map {map_id} not found"})
+
+    return _response(200, map_data)
 
 
 def list_site_maps(topology: str, site_id: str, query_params: dict) -> dict:

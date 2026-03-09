@@ -134,8 +134,15 @@ def _route_request(method: str, path: str, path_params: dict, query_params: dict
         site_id = path_params.get("site_id") or site_derived_match.group(1)
         return networks.list_derived_networks(topology, site_id, query_params)
 
+    # GET /api/v1/sites/{site_id}/maps/{map_id}
+    site_map_by_id_match = re.match(r"/api/v1/sites/([^/]+)/maps/([^/]+)$", path)
+    if site_map_by_id_match:
+        site_id = path_params.get("site_id") or site_map_by_id_match.group(1)
+        map_id = path_params.get("map_id") or site_map_by_id_match.group(2)
+        return maps.get_site_map(topology, site_id, map_id)
+
     # GET /api/v1/sites/{site_id}/maps
-    site_maps_match = re.match(r"/api/v1/sites/([^/]+)/maps", path)
+    site_maps_match = re.match(r"/api/v1/sites/([^/]+)/maps$", path)
     if site_maps_match:
         site_id = path_params.get("site_id") or site_maps_match.group(1)
         return maps.list_site_maps(topology, site_id, query_params)

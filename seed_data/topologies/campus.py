@@ -219,13 +219,14 @@ def generate_campus_topology(seed: int = 42) -> dict:
         maps.extend(site_maps)
         map_ids = [m["id"] for m in site_maps]
 
-        # Devices
+        # Devices — pass site_maps so coordinates are bounded to actual map dimensions
         site_devices = device_gen.generate_devices_for_site(
             site_id=site_id,
             org_id=org_id,
             config=sc["devices"],
             network_octet=99,
             map_ids=map_ids,
+            site_maps=site_maps,
             seed=seed,
             site_index=i + 1,
         )

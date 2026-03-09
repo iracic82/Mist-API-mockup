@@ -52,3 +52,49 @@ class TestListSiteMaps:
         response = lambda_handler(api_event, None)
 
         assert response["statusCode"] == 404
+
+
+class TestGetSiteMap:
+    def test_returns_single_map(self, mock_db_client):
+        event = {
+            "httpMethod": "GET",
+            "path": "/api/v1/sites/site-abc/maps/map-123",
+            "headers": {"Authorization": "Token test-api-key-12345"},
+            "queryStringParameters": {},
+            "pathParameters": {"site_id": "site-abc", "map_id": "map-123"},
+            "body": None,
+        }
+
+        mock_site = {"id": "site-abc", "name": "HQ"}
+        mock_map = {
+            "id": "map-123", "site_id": "site-abc", "name": "Ground Floor",
+            "type": "image", "width": 1000, "height": 800,
+        }
+
+        mock_db = mock_db_client.return_value
+        mock_db.get_entity.side_effect = [mock_site, mock_map]
+
+        response = lambda_handler(event, None)
+
+        assert response["statusCode"] == 200
+        body = json.loads(response["body"])
+        assert body["id"] == "map-123"
+        assert body["name"] == "Ground Floor"
+
+    def test_returns_404_for_nonexistent_map(self, mock_db_client):
+        event = {
+            "httpMethod": "GET",
+            "path": "/api/v1/sites/site-abc/maps/map-999",
+            "headers": {"Authorization": "Token test-api-key-12345"},
+            "queryStringParameters": {},
+            "pathParameters": {"site_id": "site-abc", "map_id": "map-999"},
+            "body": None,
+        }
+
+        mock_site = {"id": "site-abc", "name": "HQ"}
+        mock_db = mock_db_client.return_value
+        mock_db.get_entity.side_effect = [mock_site, None]
+
+        response = lambda_handler(event, None)
+
+        assert response["statusCode"] == 404

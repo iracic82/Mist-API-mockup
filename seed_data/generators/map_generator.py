@@ -81,6 +81,24 @@ class MapGenerator:
             },
             "locked": False,
             "flags": {},
+            "wayfinding": {
+                "snap_to_path": True,
+            },
+            "wayfinding_path": {
+                "coordinate": "",
+                "nodes": [
+                    {
+                        "name": f"node-{j}",
+                        "x": round(random.uniform(50.0, float(width) - 50), 2),
+                        "y": round(random.uniform(50.0, float(height) - 50), 2),
+                        "edges": {},
+                    }
+                    for j in range(random.randint(3, 8))
+                ],
+            },
+            "occupancy_limit": random.choice([0, 50, 100, 150, 200]),
+            "use_auto_orientation": True,
+            "use_auto_placement": True,
             "created_time": created,
             "modified_time": now - random.randint(0, 86400 * 7),
         }

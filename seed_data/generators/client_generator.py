@@ -27,12 +27,14 @@ CLIENT_PROFILES = [
         "hostname_prefix": "IPHONE",
         "manufacturer": "Apple", "oui": "3ce072",
         "os": ["iOS 17", "iOS 16"], "family": "Apple", "model": "iPhone",
+        "dhcp_vendor_class": "Apple iPhone", "dhcp_request_params": "1 3 6 15 119 252",
         "wireless_weight": 12, "wired_weight": 0,
     },
     {
         "hostname_prefix": "IPAD",
         "manufacturer": "Apple", "oui": "3ce072",
         "os": ["iPadOS 17", "iPadOS 16"], "family": "Apple", "model": "iPad",
+        "dhcp_vendor_class": "Apple iPad", "dhcp_request_params": "1 3 6 15 119 252",
         "wireless_weight": 5, "wired_weight": 0,
     },
     # ── Apple computer ──
@@ -40,6 +42,7 @@ CLIENT_PROFILES = [
         "hostname_prefix": "MACBOOK",
         "manufacturer": "Apple", "oui": "a483e7",
         "os": ["macOS Sonoma", "macOS Ventura"], "family": "Apple", "model": "MacBook",
+        "dhcp_vendor_class": "AAPLBSD", "dhcp_request_params": "1 3 6 15 119 252",
         "wireless_weight": 8, "wired_weight": 3,
     },
     # ── Samsung ──
@@ -47,6 +50,7 @@ CLIENT_PROFILES = [
         "hostname_prefix": "GALAXY",
         "manufacturer": "Samsung", "oui": "8425db",
         "os": ["Android 14", "Android 13"], "family": "Android", "model": "Galaxy",
+        "dhcp_vendor_class": "android-dhcp-14", "dhcp_request_params": "1 3 6 15 26 28 51 58 59 43",
         "wireless_weight": 12, "wired_weight": 0,
     },
     # ── Dell ──
@@ -54,12 +58,14 @@ CLIENT_PROFILES = [
         "hostname_prefix": "LAPTOP",
         "manufacturer": "Dell", "oui": "f8b156",
         "os": ["Windows 11", "Windows 10"], "family": "Windows", "model": "Latitude",
+        "dhcp_vendor_class": "MSFT 5.0", "dhcp_request_params": "1 3 6 15 31 33 43 44 46 47 119 121 249 252",
         "wireless_weight": 8, "wired_weight": 6,
     },
     {
         "hostname_prefix": "DESKTOP",
         "manufacturer": "Dell", "oui": "f8b156",
         "os": ["Windows 11", "Windows 10"], "family": "Windows", "model": "OptiPlex",
+        "dhcp_vendor_class": "MSFT 5.0", "dhcp_request_params": "1 3 6 15 31 33 43 44 46 47 119 121 249 252",
         "wireless_weight": 0, "wired_weight": 10,
     },
     # ── HP — PCs use 10b676, printers use c8b5ad (different OUI ranges!) ──
@@ -67,12 +73,14 @@ CLIENT_PROFILES = [
         "hostname_prefix": "LAPTOP",
         "manufacturer": "HP", "oui": "10b676",
         "os": ["Windows 11", "Windows 10"], "family": "Windows", "model": "EliteBook",
+        "dhcp_vendor_class": "MSFT 5.0", "dhcp_request_params": "1 3 6 15 31 33 43 44 46 47 119 121 249 252",
         "wireless_weight": 7, "wired_weight": 5,
     },
     {
         "hostname_prefix": "PRINTER",
         "manufacturer": "HP", "oui": "c8b5ad",
         "os": ["Embedded"], "family": "HP", "model": "LaserJet",
+        "dhcp_vendor_class": "Hewlett-Packard JetDirect", "dhcp_request_params": "1 3 6 23 44",
         "wireless_weight": 1, "wired_weight": 8,
     },
     # ── Lenovo ──
@@ -80,6 +88,7 @@ CLIENT_PROFILES = [
         "hostname_prefix": "THINKPAD",
         "manufacturer": "Lenovo", "oui": "28d244",
         "os": ["Windows 11", "Windows 10"], "family": "Windows", "model": "ThinkPad",
+        "dhcp_vendor_class": "MSFT 5.0", "dhcp_request_params": "1 3 6 15 31 33 43 44 46 47 119 121 249 252",
         "wireless_weight": 8, "wired_weight": 6,
     },
     # ── Microsoft ──
@@ -87,6 +96,7 @@ CLIENT_PROFILES = [
         "hostname_prefix": "SURFACE",
         "manufacturer": "Microsoft", "oui": "281878",
         "os": ["Windows 11"], "family": "Windows", "model": "Surface",
+        "dhcp_vendor_class": "MSFT 5.0", "dhcp_request_params": "1 3 6 15 31 33 43 44 46 47 119 121 249 252",
         "wireless_weight": 5, "wired_weight": 2,
     },
     # ── Google ──
@@ -94,6 +104,7 @@ CLIENT_PROFILES = [
         "hostname_prefix": "PIXEL",
         "manufacturer": "Google", "oui": "f4f5d8",
         "os": ["Android 14"], "family": "Android", "model": "Pixel",
+        "dhcp_vendor_class": "android-dhcp-14", "dhcp_request_params": "1 3 6 15 26 28 51 58 59 43",
         "wireless_weight": 4, "wired_weight": 0,
     },
     # ── Cisco VoIP ──
@@ -101,6 +112,7 @@ CLIENT_PROFILES = [
         "hostname_prefix": "VOIP",
         "manufacturer": "Cisco", "oui": "001b0d",
         "os": ["Cisco IP Phone"], "family": "Cisco", "model": "IP Phone 8845",
+        "dhcp_vendor_class": "Cisco Systems, Inc. IP Phone", "dhcp_request_params": "1 66 6 3 15 150 35",
         "wireless_weight": 1, "wired_weight": 8,
     },
     # ── Zebra scanners ──
@@ -108,6 +120,7 @@ CLIENT_PROFILES = [
         "hostname_prefix": "SCANNER",
         "manufacturer": "Zebra", "oui": "00a0f8",
         "os": ["Android 11"], "family": "Android", "model": "TC52",
+        "dhcp_vendor_class": "android-dhcp-11", "dhcp_request_params": "1 3 6 15 26 28 51 58 59 43",
         "wireless_weight": 3, "wired_weight": 2,
     },
 ]
@@ -259,10 +272,19 @@ class ClientGenerator:
             "site_id": site_id,
             "timestamp": float(now - random.randint(0, 3600)),
             "hostname": hostname,
+            "manufacture": profile["manufacturer"],
+            "random_mac": False,
+            "last_hostname": hostname,
+            "last_port_id": p_id,
+            "last_vlan": vlan_id,
+            "last_vlan_name": "",
+            "last_device_mac": dev_mac,
             "dhcp_hostname": hostname.lower(),
             "dhcp_fqdn": f"{hostname.lower()}.local",
             "dhcp_client_identifier": mac,
-            "dhcp_vendor_class_identifier": "",
+            "dhcp_client_options": [],
+            "dhcp_vendor_class_identifier": profile["dhcp_vendor_class"],
+            "dhcp_request_params": profile["dhcp_request_params"],
             "auth_state": "authenticated",
             "auth_method": random.choice(["mac_auth", "dot1x", "mab"]),
         }
