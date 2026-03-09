@@ -55,6 +55,26 @@ class MapGenerator:
         lat_offset = random.uniform(0.001, 0.005)
         lng_offset = random.uniform(0.001, 0.005)
 
+        # Generate wayfinding path nodes with proper connections
+        num_nodes = random.randint(3, 8)
+        wayfinding_nodes = []
+        for j in range(num_nodes):
+            node_name = f"N{j + 1}"
+            node = {
+                "name": node_name,
+                "position": {
+                    "x": round(random.uniform(50.0, float(width) - 50), 2),
+                    "y": round(random.uniform(50.0, float(height) - 50), 2),
+                },
+                "edges": {},
+            }
+            # Connect to previous and next nodes
+            if j > 0:
+                node["edges"][f"N{j}"] = "1"
+            if j < num_nodes - 1:
+                node["edges"][f"N{j + 2}"] = "1"
+            wayfinding_nodes.append(node)
+
         return {
             "id": map_id,
             "site_id": site_id,
@@ -68,9 +88,9 @@ class MapGenerator:
             "width_m": round(width_m, 2),
             "height_m": round(height_m, 2),
             "ppm": round(ppm, 6),
-            "origin_x": 0.0,
-            "origin_y": 0.0,
-            "orientation": 0,
+            "origin_x": round(random.uniform(10.0, 100.0), 2),
+            "origin_y": round(random.uniform(100.0, 600.0), 2),
+            "orientation": random.choice([0, 5, 90, 180, 270]),
             "latlng_br": {
                 "lat": lat - lat_offset,
                 "lng": lng + lng_offset,
@@ -85,20 +105,22 @@ class MapGenerator:
                 "snap_to_path": True,
             },
             "wayfinding_path": {
-                "coordinate": "",
-                "nodes": [
-                    {
-                        "name": f"node-{j}",
-                        "x": round(random.uniform(50.0, float(width) - 50), 2),
-                        "y": round(random.uniform(50.0, float(height) - 50), 2),
-                        "edges": {},
-                    }
-                    for j in range(random.randint(3, 8))
-                ],
+                "coordinate": "actual",
+                "nodes": wayfinding_nodes,
+                "name": "Office",
             },
             "occupancy_limit": random.choice([0, 50, 100, 150, 200]),
-            "use_auto_orientation": True,
-            "use_auto_placement": True,
+            "use_auto_orientation": random.choice([True, False]),
+            "use_auto_placement": random.choice([True, False]),
+            "intended_coverage_areas": [],
+            "group_name": name,
+            "group_idx": 0,
+            "sitesurvey_path": [],
+            "wall_path": {
+                "coordinate": "actual",
+                "nodes": [],
+                "name": "",
+            },
             "created_time": created,
             "modified_time": now - random.randint(0, 86400 * 7),
         }

@@ -188,19 +188,40 @@ class DeviceGenerator:
             "deviceprofile_id": None,
             "evpntopo_id": None,
             "hw_rev": "A1",
+            "tag_uuid": org_id,
+            "tag_id": random.randint(1000000, 9999999),
+            "config_version": now - random.randint(0, 86400),
+            "config_timestamp": now - random.randint(0, 86400),
+            "chassis_serial": serial,
+            "chassis_model": model if device_type == "switch" else "",
+            "chassis_mac": mac if device_type == "switch" else "",
+            "part_number": "",
+            "fw_versions_outofsync": False,
+            "fw_restore_available": True if status == "connected" else False,
+            "last_trouble": {"code": "", "timestamp": 0},
         }
 
         # Type-specific fields
+        extras_kwargs = {
+            "mac": mac,
+            "serial": serial,
+            "model": model,
+            "model_info": model_info,
+            "status": status,
+            "uptime": uptime,
+            "now": now,
+        }
         if device_type == "ap":
-            device.update(self._generate_ap_extras(mac, status))
+            device.update(self._generate_ap_extras(**extras_kwargs))
         elif device_type == "switch":
-            device.update(self._generate_switch_extras(name, status))
+            device.update(self._generate_switch_extras(name=name, **extras_kwargs))
         elif device_type == "gateway":
-            device.update(self._generate_gateway_extras(name, status))
+            device.update(self._generate_gateway_extras(name=name, **extras_kwargs))
 
         return device
 
-    def _generate_ap_extras(self, mac: str, status: str) -> dict:
+    def _generate_ap_extras(self, mac: str, status: str, now: int, serial: str,
+                            model: str, model_info: dict, uptime: float) -> dict:
         """Generate AP-specific stats fields."""
         num_clients = random.randint(0, 30) if status == "connected" else 0
         return {
@@ -246,9 +267,34 @@ class DeviceGenerator:
             "tx_bps": random.randint(1000, 500000),
             "rx_bytes": random.randint(1000000, 10000000000),
             "tx_bytes": random.randint(1000000, 5000000000),
+            "auto_upgrade_stat": {
+                "lastcheck": now - random.randint(0, 86400),
+                "scheduled": False,
+            },
+            "radio_config": {"band_5": {}},
+            "ip_config": {"type": "dhcp", "network": "default"},
+            "config_reverted": False,
+            "port_stat": {
+                "eth0": {
+                    "up": True,
+                    "speed": 1000,
+                    "full_duplex": True,
+                    "rx_bytes": random.randint(1000000, 10000000000),
+                    "tx_bytes": random.randint(1000000, 5000000000),
+                    "rx_pkts": random.randint(10000, 100000000),
+                    "tx_pkts": random.randint(10000, 100000000),
+                },
+            },
+            "mount": random.choice(["facedown", "ceiling", "wall"]),
+            "mesh": {"enabled": False, "role": "base", "group": None},
+            "switch_redundancy": {"num_redundant_aps": 0},
+            "cpu_util": random.randint(5, 40),
+            "mem_used_kb": random.randint(100000, 500000),
+            "mem_total_kb": random.randint(500000, 1000000),
         }
 
-    def _generate_switch_extras(self, name: str, status: str) -> dict:
+    def _generate_switch_extras(self, name: str, status: str, mac: str, serial: str,
+                               model: str, model_info: dict, uptime: float, now: int) -> dict:
         """Generate switch-specific stats fields."""
         num_clients = random.randint(5, 48) if status == "connected" else 0
         return {
@@ -270,10 +316,51 @@ class DeviceGenerator:
                 }
                 for _ in range(min(num_clients, 5))
             ],
-            "module_stat": [],
+            "module_stat": [
+                {
+                    "locating": False,
+                    "optics_cpld_version": "",
+                    "power_cpld_version": "",
+                    "cpld_version": "2.64",
+                    "memory_stat": {"usage": random.randint(30, 70)},
+                    "vc_state": "present",
+                    "boot_partition": "junos",
+                    "poe": {
+                        "max_power": random.choice([180.0, 370.0, 740.0, 1480.0]),
+                        "power_reserved": 0.0,
+                        "power_draw": round(random.uniform(10.0, 200.0), 1),
+                        "status": random.choice(["AT_MODE", "BT_MODE"]),
+                    },
+                    "backup_version": "22.4R2-S1.6",
+                    "vc_mode": "HiGiG",
+                    "type": "fpc",
+                    "mac": mac,
+                    "_idx": 0,
+                    "temperatures": [
+                        {"name": f"Thermal board Sensor {i+1}", "status": "ok", "celsius": float(random.randint(38, 55))}
+                        for i in range(3)
+                    ] + [{"name": "PFE Die Sensor", "status": "ok", "celsius": float(random.randint(45, 65))}],
+                    "psus": [
+                        {"name": "Power Supply 0", "status": "ok", "description": "PSU-200W-AC"},
+                        {"name": "Power Supply 1", "status": random.choice(["ok", "absent"]), "description": random.choice(["PSU-200W-AC", ""])},
+                    ],
+                    "humidity": [],
+                    "fans": [
+                        {"name": f"Fan Tray {i} Fan 1", "status": "ok", "airflow": "out", "rpm": random.randint(2000, 5000)}
+                        for i in range(2)
+                    ],
+                    "model": model,
+                    "serial": serial,
+                    "part_number": "",
+                    "version": model_info.get("firmware", "22.4R3-S3"),
+                    "fpc_idx": 0,
+                    "vc_role": "master",
+                    "uptime": int(uptime),
+                },
+            ],
             "mac_table_stats": {
                 "mac_table_count": random.randint(10, 500),
-                "max_mac_table_count": 16384,
+                "max_mac_entries_supported": 16384,
             },
             "clients_stats": {
                 "total": num_clients,
@@ -289,9 +376,28 @@ class DeviceGenerator:
             },
             "hostname": name.lower().replace(" ", "-"),
             "config_status": "synced" if status == "connected" else "out_of_sync",
+            "auto_upgrade_stat": {"lastcheck": now, "scheduled": False},
+            "arp_table_stats": {
+                "arp_table_count": random.randint(10, 200),
+                "max_entries_supported": 65536,
+            },
+            "route_summary_stats": {
+                "fib_routes": random.randint(10, 500),
+                "max_unicast_routes_supported": 1048576,
+                "total_routes": random.randint(10, 500),
+            },
+            "fw_restore_available": True if status == "connected" else False,
+            "has_pcap": False,
+            "dhcpd_stat": {},
+            "service_stat": {},
+            "ap_redundancy": {
+                "num_aps": 0,
+                "num_aps_with_switch_redundancy": 0,
+            },
         }
 
-    def _generate_gateway_extras(self, name: str, status: str) -> dict:
+    def _generate_gateway_extras(self, name: str, status: str, mac: str, serial: str,
+                                model: str, model_info: dict, uptime: float, now: int) -> dict:
         """Generate gateway-specific stats fields."""
         return {
             "if_stat": {
@@ -326,6 +432,9 @@ class DeviceGenerator:
                 "mac_table_count": random.randint(10, 200),
                 "max_mac_table_count": 65536,
             },
+            "auto_upgrade_stat": {},
+            "module_stat": [{"mac": mac, "status": status, "serial": serial, "model": model}],
+            "expiring_certs": {},
         }
 
     def generate_devices_for_site(

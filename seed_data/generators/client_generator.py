@@ -271,7 +271,7 @@ class ClientGenerator:
             "org_id": org_id,
             "site_id": site_id,
             "timestamp": float(now - random.randint(0, 3600)),
-            "hostname": hostname,
+            "hostname": [hostname],
             "manufacture": profile["manufacturer"],
             "random_mac": False,
             "last_hostname": hostname,
