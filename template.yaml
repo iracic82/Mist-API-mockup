@@ -121,55 +121,55 @@ Resources:
           Properties:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/self
-            Method: GET
+            Method: ANY
         GetOrganization:
           Type: Api
           Properties:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/orgs/{org_id}
-            Method: GET
+            Method: ANY
         ListOrgSites:
           Type: Api
           Properties:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/orgs/{org_id}/sites
-            Method: GET
+            Method: ANY
         ListSiteDevicesStats:
           Type: Api
           Properties:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/sites/{site_id}/stats/devices
-            Method: GET
+            Method: ANY
         ListOrgNetworks:
           Type: Api
           Properties:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/orgs/{org_id}/networks
-            Method: GET
+            Method: ANY
         ListSiteWirelessClientsStats:
           Type: Api
           Properties:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/sites/{site_id}/stats/clients
-            Method: GET
+            Method: ANY
         SearchSiteWiredClients:
           Type: Api
           Properties:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/sites/{site_id}/wired_clients/search
-            Method: GET
+            Method: ANY
         ListSiteNetworksDerived:
           Type: Api
           Properties:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/sites/{site_id}/networks/derived
-            Method: GET
+            Method: ANY
         ListSiteMaps:
           Type: Api
           Properties:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/sites/{site_id}/maps
-            Method: GET
+            Method: ANY
 
         # Admin Endpoints
         GetTopologies:
@@ -202,6 +202,16 @@ Resources:
             RestApiId: !Ref MistMockApi
             Path: /health
             Method: GET
+
+        # Catch-all for any undefined paths - prevents API Gateway
+        # from returning IncompleteSignatureException (403) when it
+        # tries to parse Authorization: Token as AWS SigV4
+        CatchAllProxy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /{proxy+}
+            Method: ANY
 
   # ============================================
   # API Gateway

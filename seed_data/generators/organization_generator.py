@@ -38,15 +38,12 @@ class OrganizationGenerator:
         return {
             "id": org_id,
             "name": name,
-            "created_time": created,
-            "modified_time": now - random.randint(0, 86400 * 7),
+            "created_time": float(created),
+            "modified_time": float(now - random.randint(0, 86400 * 7)),
             "allow_mist": True,
             "session_expiry": 1440,
             "orggroup_ids": [],
-            "msp_id": "",
-            "mist_nac": {
-                "enabled": False
-            },
+            "msp_id": None,
         }
 
     def generate_user_self(
@@ -65,12 +62,17 @@ class OrganizationGenerator:
         """
         now = int(datetime.utcnow().timestamp())
 
+        admin_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"admin-{email}"))
+
         return {
+            "admin_id": admin_id,
             "email": email,
             "first_name": first_name,
             "last_name": last_name,
             "phone": "+1-408-555-0100",
             "via_sso": False,
+            "enable_two_factor": False,
+            "two_factor_verified": False,
             "session_expiry": now + 86400,
             "tags": ["admin"],
             "privileges": [
@@ -81,6 +83,7 @@ class OrganizationGenerator:
                     "role": "admin",
                     "views": ["analytics", "monitoring"],
                     "site_id": None,
+                    "name": org_name,
                 }
             ],
         }

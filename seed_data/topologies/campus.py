@@ -246,6 +246,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
             site_id=site_id,
             devices=site_devices,
             count=sc["wireless_clients"],
+            site_index=i + 1,
         )
         wireless_clients.extend(w_clients)
 
@@ -255,6 +256,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
             org_id=org_id,
             devices=site_devices,
             count=sc["wired_clients"],
+            site_index=i + 1,
         )
         wired_clients.extend(wr_clients)
 

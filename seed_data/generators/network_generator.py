@@ -62,8 +62,8 @@ class NetworkGenerator:
             },
             "vpn_access": {},
             "tenants": {},
-            "created_time": created,
-            "modified_time": now - random.randint(0, 86400 * 7),
+            "created_time": float(created),
+            "modified_time": float(now - random.randint(0, 86400 * 7)),
         }
 
     def generate_org_networks(self, org_id: str, seed: int = 42) -> list[dict]:
@@ -122,8 +122,8 @@ class NetworkGenerator:
             },
             "vpn_access": {},
             "tenants": {},
-            "created_time": created,
-            "modified_time": now - random.randint(0, 86400 * 7),
+            "created_time": float(created),
+            "modified_time": float(now - random.randint(0, 86400 * 7)),
         }
 
     def generate_derived_networks_for_site(

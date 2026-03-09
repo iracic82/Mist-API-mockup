@@ -112,8 +112,8 @@ class DeviceGenerator:
 
         # 95% of devices are connected
         status = "connected" if random.random() < 0.95 else "disconnected"
-        uptime = random.randint(3600, 86400 * 90) if status == "connected" else 0
-        last_seen = now - (random.randint(0, 300) if status == "connected" else random.randint(3600, 86400 * 3))
+        uptime = float(random.randint(3600, 86400 * 90)) if status == "connected" else 0.0
+        last_seen = float(now - (random.randint(0, 300) if status == "connected" else random.randint(3600, 86400 * 3)))
 
         device = {
             "id": device_id,
@@ -129,21 +129,26 @@ class DeviceGenerator:
             "uptime": uptime,
             "last_seen": last_seen,
             "version": model_info.get("firmware", "0.14.29505"),
-            "created_time": now - random.randint(86400 * 30, 86400 * 365),
-            "modified_time": now - random.randint(0, 86400 * 7),
+            "created_time": float(now - random.randint(86400 * 30, 86400 * 365)),
+            "modified_time": float(now - random.randint(0, 86400 * 7)),
             "map_id": map_id,
+            "ext_ip": f"198.51.100.{random.randint(1, 254)}",
             "ip_stat": {
                 "ip": ip,
                 "netmask": "255.255.255.0",
                 "gateway": f"10.{network_octet}.{site_index}.1",
                 "dns": ["8.8.8.8", "8.8.4.4"],
+                "dns_suffix": [],
+                "ips": {
+                    "vlan99": ip,
+                },
             },
             "fwupdate": {
                 "status": "idle",
                 "status_id": 1,
                 "timestamp": now - random.randint(86400, 86400 * 30),
             },
-            "cert_expiry": now + random.randint(86400 * 30, 86400 * 365),
+            "cert_expiry": float(now + random.randint(86400 * 30, 86400 * 365)),
             "deviceprofile_id": None,
             "evpntopo_id": None,
             "hw_rev": "A1",
@@ -198,8 +203,13 @@ class DeviceGenerator:
                 },
             },
             "led": {"enabled": True},
-            "power_budget": random.choice([15.4, 25.5, 30.0]),
+            "power_budget": random.choice([15400, 25500, 30000]),
             "power_src": "DC",
+            "num_wlans": random.randint(1, 4),
+            "rx_bps": random.randint(1000, 500000),
+            "tx_bps": random.randint(1000, 500000),
+            "rx_bytes": random.randint(1000000, 10000000000),
+            "tx_bytes": random.randint(1000000, 5000000000),
         }
 
     def _generate_switch_extras(self, name: str, status: str) -> dict:
@@ -225,6 +235,13 @@ class DeviceGenerator:
                 for _ in range(min(num_clients, 5))
             ],
             "module_stat": [],
+            "mac_table_stats": {
+                "mac_table_count": random.randint(10, 500),
+                "max_mac_table_count": 16384,
+            },
+            "clients_stats": {
+                "total": num_clients,
+            },
             "cpu_stat": {
                 "idle": random.randint(60, 95),
                 "system": random.randint(2, 20),
@@ -265,6 +282,14 @@ class DeviceGenerator:
             "cluster_stat": None,
             "hostname": name.lower().replace(" ", "-"),
             "is_ha": False,
+            "route_summary_stats": {
+                "fib_routes": random.randint(10, 500),
+                "max_unicast_routes_count": 1048576,
+            },
+            "mac_table_stats": {
+                "mac_table_count": random.randint(10, 200),
+                "max_mac_table_count": 65536,
+            },
         }
 
     def generate_devices_for_site(

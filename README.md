@@ -257,6 +257,53 @@ python seed_data/seed_dynamodb.py \
     --topology my_topology
 ```
 
+## Data Viewer (Docker)
+
+A built-in web UI to browse and validate all seeded data — devices, wireless/wired clients, sites, networks — with MAC/hostname coherence checks.
+
+![Data Viewer](docs/data-viewer-screenshot.png)
+
+### Quick Start
+
+```bash
+docker run -d -p 8080:80 \
+  -e API_URL=https://mist-api-controller.highvelocitynetworking.com \
+  -e API_KEY=your-api-key-here \
+  iracic82/mist-data-viewer
+```
+
+Then open **http://localhost:8080**
+
+### Using Docker Compose
+
+```bash
+git clone https://github.com/iracic82/Mist-API-mockup.git
+cd Mist-API-mockup
+
+API_URL=https://mist-api-controller.highvelocitynetworking.com \
+API_KEY=your-api-key-here \
+docker compose up -d
+```
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `API_URL` | Yes | Mock Mist API base URL |
+| `API_KEY` | Yes | API authentication token |
+
+### Features
+
+- **Overview** — summary cards + coherence validation (MAC/hostname match, no phones in wired pool, no desktops in wireless pool, OUI distribution)
+- **Devices** — all APs, switches, gateways with type/site filters
+- **Wireless Clients** — hostname, vendor, MAC+OUI, IP, OS, model, SSID, band + coherence column
+- **Wired Clients** — hostname, vendor, MAC, IP, VLAN, port, switch MAC + coherence column
+- **Sites & Networks** — browse subnets, VLANs, gateways
+
+Search and filter on every tab. "Show mismatches only" checkbox to quickly find data quality issues.
+
+---
+
 ## Self-Hosting
 
 ### Prerequisites

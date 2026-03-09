@@ -98,6 +98,12 @@ def _route_request(method: str, path: str, path_params: dict, query_params: dict
         org_id = path_params.get("org_id") or org_networks_match.group(1)
         return networks.list_org_networks(topology, org_id, query_params)
 
+    # GET /api/v1/orgs/{org_id}/stats/devices
+    org_devices_match = re.match(r"/api/v1/orgs/([^/]+)/stats/devices", path)
+    if org_devices_match:
+        org_id = path_params.get("org_id") or org_devices_match.group(1)
+        return devices.list_org_device_stats(topology, org_id, query_params)
+
     # GET /api/v1/orgs/{org_id}
     org_match = re.match(r"/api/v1/orgs/([^/]+)$", path)
     if org_match:
