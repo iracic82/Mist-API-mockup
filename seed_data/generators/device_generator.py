@@ -479,6 +479,11 @@ class DeviceGenerator:
                 "system": random.randint(2, 20),
                 "user": random.randint(2, 15),
                 "interrupt": random.randint(0, 5),
+                "load_avg": [
+                    round(random.uniform(0.1, 1.0), 2),
+                    round(random.uniform(0.1, 1.0), 2),
+                    round(random.uniform(0.1, 1.0), 2),
+                ],
             },
             "memory_stat": {
                 "usage": random.randint(30, 70),
@@ -492,9 +497,10 @@ class DeviceGenerator:
                 "max_entries_supported": 65536,
             },
             "route_summary_stats": {
-                "fib_routes": random.randint(10, 500),
-                "max_unicast_routes_supported": 1048576,
-                "total_routes": random.randint(10, 500),
+                "fib_routes": random.randint(1, 10),
+                "rib_routes": random.randint(10, 20),
+                "total_routes": random.randint(3, 10),
+                "max_unicast_routes_supported": 81000,
             },
             "vc_setup_info": {
                 "err_vc_config_out_of_sync": False,
@@ -668,6 +674,7 @@ class DeviceGenerator:
             }
 
         return {
+            "_id": mac,
             "if_stat": self._generate_gateway_if_stat(ip, site_index, status),
             # Override ip_stat to match real Mist format for gateways
             "ip_stat": {
@@ -678,16 +685,41 @@ class DeviceGenerator:
                     "vlan99": mgmt_ip,
                 },
             },
+            "config_status": "COMMITED" if status == "connected" else "out_of_sync",
             "cpu_stat": {
                 "idle": random.randint(60, 95),
                 "system": random.randint(2, 20),
                 "user": random.randint(2, 15),
                 "interrupt": random.randint(0, 5),
+                "load_avg": [
+                    round(random.uniform(0.1, 2.0), 2),
+                    round(random.uniform(0.1, 2.0), 2),
+                    round(random.uniform(0.1, 2.0), 2),
+                ],
             },
             "memory_stat": {
                 "usage": random.randint(30, 70),
             },
             "service_stat": {},
+            "service_status": {
+                "appid_status": "enabled",
+                "appid_version": random.randint(3700, 3800),
+                "idp_status": "disabled",
+                "ewf_status": "disabled",
+                "av_status": "disabled",
+                "ssl_proxy_status": "disabled",
+            },
+            "spu_stat": [
+                {
+                    "spu_cpu": random.randint(1, 10),
+                    "spu_memory": random.randint(30, 60),
+                    "spu_current_session": random.randint(100, 5000),
+                    "spu_max_session": 131072,
+                    "spu_pending_session": 0,
+                    "spu_valid_session": random.randint(100, 5000),
+                    "spu_uptime": int(uptime),
+                },
+            ],
             "dhcpd_stat": dhcpd_stat,
             "bgp_peers": [],
             "cluster_stat": None,
@@ -695,11 +727,17 @@ class DeviceGenerator:
             "is_ha": False,
             "route_summary_stats": {
                 "fib_routes": random.randint(10, 500),
-                "max_unicast_routes_count": 1048576,
+                "rib_routes": 0,
+                "total_routes": 0,
+                "max_unicast_routes_supported": 1240000,
+            },
+            "arp_table_stats": {
+                "arp_table_count": random.randint(10, 200),
+                "max_entries_supported": 64000,
             },
             "mac_table_stats": {
                 "mac_table_count": random.randint(10, 200),
-                "max_mac_table_count": 65536,
+                "max_mac_entries_supported": 160000,
             },
             "auto_upgrade_stat": {},
             "module_stat": [{"mac": mac, "status": status, "serial": serial, "model": model}],
