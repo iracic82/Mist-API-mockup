@@ -412,7 +412,7 @@ class DeviceGenerator:
                 "netmask": "255.255.255.255",
                 "gateway": f"10.99.{site_index}.1",
                 "ips": {
-                    "vlan99": f"{mgmt_ip},127.0.0.1",
+                    "vlan99": f"{mgmt_ip},127.0.0.1,{mgmt_ip}",
                 },
             },
             "clients": [
@@ -469,7 +469,10 @@ class DeviceGenerator:
                 "max_mac_entries_supported": 16384,
             },
             "clients_stats": {
-                "total": num_clients,
+                "total": {
+                    "num_wired_clients": num_clients,
+                    "num_aps": [random.randint(0, 5)],
+                },
             },
             "cpu_stat": {
                 "idle": random.randint(60, 95),
@@ -481,7 +484,8 @@ class DeviceGenerator:
                 "usage": random.randint(30, 70),
             },
             "hostname": name.lower().replace(" ", "-"),
-            "config_status": "synced" if status == "connected" else "out_of_sync",
+            "_id": mac,
+            "config_status": "COMMITED" if status == "connected" else "out_of_sync",
             "auto_upgrade_stat": {"lastcheck": now, "scheduled": False},
             "arp_table_stats": {
                 "arp_table_count": random.randint(10, 200),
@@ -492,10 +496,16 @@ class DeviceGenerator:
                 "max_unicast_routes_supported": 1048576,
                 "total_routes": random.randint(10, 500),
             },
+            "vc_setup_info": {
+                "err_vc_config_out_of_sync": False,
+                "config_type": "nonprovisioned",
+                "err_missing_dev_id_fpc": False,
+            },
             "fw_restore_available": True if status == "connected" else False,
             "has_pcap": False,
             "dhcpd_stat": {},
             "service_stat": {},
+            "expiring_certs": {},
             "ap_redundancy": {
                 "num_aps": 0,
                 "num_aps_with_switch_redundancy": 0,
