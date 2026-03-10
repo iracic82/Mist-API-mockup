@@ -46,6 +46,7 @@ sam deploy --profile okta-sso
 | `GET /api/v1/orgs/{org_id}` | `organizations.get_organization` | N/A |
 | `GET /api/v1/orgs/{org_id}/sites` | `sites.list_sites` | page-based (`limit`, `page`, `X-Page-Total`) |
 | `GET /api/v1/sites/{site_id}/stats/devices` | `devices.list_device_stats` | page-based + type filter |
+| `GET /api/v1/orgs/{org_id}/stats/devices` | `devices.list_org_device_stats` | page-based + type filter |
 | `GET /api/v1/orgs/{org_id}/networks` | `networks.list_org_networks` | page-based |
 | `GET /api/v1/sites/{site_id}/stats/clients` | `clients.list_wireless_clients` | limit-based |
 | `GET /api/v1/sites/{site_id}/wired_clients/search` | `clients.search_wired_clients` | link-based (`next` URL) |

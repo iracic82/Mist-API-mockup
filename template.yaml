@@ -140,6 +140,12 @@ Resources:
             RestApiId: !Ref MistMockApi
             Path: /api/v1/sites/{site_id}/stats/devices
             Method: ANY
+        ListOrgDevicesStats:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MistMockApi
+            Path: /api/v1/orgs/{org_id}/stats/devices
+            Method: ANY
         ListOrgNetworks:
           Type: Api
           Properties:
