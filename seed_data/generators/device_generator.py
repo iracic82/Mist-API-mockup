@@ -11,6 +11,8 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
+from seed_data.generators.network_generator import ORG_NETWORK_TEMPLATES
+
 # Mist device models by type
 MIST_DEVICE_MODELS = {
     "ap": [
@@ -26,14 +28,14 @@ MIST_DEVICE_MODELS = {
         {"model": "AP12", "firmware": "0.12.27805", "band": "Wi-Fi 5"},
     ],
     "switch": [
-        {"model": "EX4300-48T", "firmware": "22.4R3-S3"},
-        {"model": "EX4300-24T", "firmware": "22.4R3-S3"},
-        {"model": "EX4400-48T", "firmware": "22.4R3-S3"},
-        {"model": "EX4400-24T", "firmware": "22.4R3-S3"},
-        {"model": "EX4650-48Y", "firmware": "22.4R3-S3"},
-        {"model": "EX2300-24T", "firmware": "22.4R3-S3"},
-        {"model": "EX2300-48T", "firmware": "22.4R3-S3"},
-        {"model": "EX4100-48T", "firmware": "23.2R1-S2"},
+        {"model": "EX4300-48T", "firmware": "22.4R3-S3", "port_count": 48, "port_prefix": "ge"},
+        {"model": "EX4300-24T", "firmware": "22.4R3-S3", "port_count": 24, "port_prefix": "ge"},
+        {"model": "EX4400-48T", "firmware": "22.4R3-S3", "port_count": 48, "port_prefix": "mge"},
+        {"model": "EX4400-24T", "firmware": "22.4R3-S3", "port_count": 24, "port_prefix": "mge"},
+        {"model": "EX4650-48Y", "firmware": "22.4R3-S3", "port_count": 48, "port_prefix": "et"},
+        {"model": "EX2300-24T", "firmware": "22.4R3-S3", "port_count": 24, "port_prefix": "ge"},
+        {"model": "EX2300-48T", "firmware": "22.4R3-S3", "port_count": 48, "port_prefix": "ge"},
+        {"model": "EX4100-48T", "firmware": "23.2R1-S2", "port_count": 48, "port_prefix": "mge"},
     ],
     "gateway": [
         {"model": "SRX345", "firmware": "22.4R3-S3"},
@@ -44,6 +46,13 @@ MIST_DEVICE_MODELS = {
         {"model": "SSR130", "firmware": "6.2.5-R2"},
     ],
 }
+
+# WAN link definitions for gateway interfaces — each site gateway gets these
+# WAN interfaces on ge-0/0/0 through ge-0/0/2, LAN trunk on ge-0/0/3
+WAN_LINKS = [
+    {"port": 0, "wan_name": "ISP-Primary", "address_mode": "Dynamic"},
+    {"port": 1, "wan_name": "ISP-Secondary", "address_mode": "Dynamic"},
+]
 
 
 class DeviceGenerator:
@@ -201,7 +210,7 @@ class DeviceGenerator:
             "last_trouble": {"code": "", "timestamp": 0},
         }
 
-        # Type-specific fields
+        # Type-specific fields (may override ip_stat, if_stat, etc.)
         extras_kwargs = {
             "mac": mac,
             "serial": serial,
@@ -214,9 +223,13 @@ class DeviceGenerator:
         if device_type == "ap":
             device.update(self._generate_ap_extras(**extras_kwargs))
         elif device_type == "switch":
-            device.update(self._generate_switch_extras(name=name, **extras_kwargs))
+            device.update(self._generate_switch_extras(
+                name=name, ip=ip, site_index=site_index, **extras_kwargs,
+            ))
         elif device_type == "gateway":
-            device.update(self._generate_gateway_extras(name=name, **extras_kwargs))
+            device.update(self._generate_gateway_extras(
+                name=name, ip=ip, site_index=site_index, **extras_kwargs,
+            ))
 
         return device
 
@@ -293,21 +306,114 @@ class DeviceGenerator:
             "mem_total_kb": random.randint(500000, 1000000),
         }
 
+    def _generate_switch_if_stat(self, model_info: dict, ip: str, site_index: int) -> dict:
+        """
+        Generate switch if_stat matching real Mist API format.
+
+        Includes physical ports (ge-/mge-/et-), IRB management interface with
+        management VLAN IP, VME interface, loopback, and management ethernet.
+        IPs on irb.0 and vme.0 are correlated with the site's Management VLAN (99)
+        subnet: 10.99.{site_index}.0/24.
+        """
+        port_prefix = model_info.get("port_prefix", "ge")
+        port_count = model_info.get("port_count", 48)
+        mgmt_ip = ip  # 10.99.{site_index}.{device}
+
+        if_stat = {}
+
+        # Physical ports — key format: "{prefix}-0/0/{i}.0"
+        for i in range(port_count):
+            port_up = random.random() < 0.3  # ~30% of ports active
+            key = f"{port_prefix}-0/0/{i}.0"
+            entry = {
+                "port_id": f"{port_prefix}-0/0/{i}",
+                "up": port_up,
+                "tx_pkts": random.randint(10000, 1000000) if port_up else 0,
+                "rx_pkts": random.randint(10000, 5000000) if port_up else 0,
+                "tx_bytes": random.randint(1000000, 10000000000) if port_up else 0,
+                "rx_bytes": random.randint(1000000, 10000000000) if port_up else 0,
+            }
+            if_stat[key] = entry
+
+        # IRB.0 — Integrated Routing and Bridging for management VLAN (99)
+        # Carries the switch's management IP on the management subnet
+        if_stat["irb.0"] = {
+            "port_id": "irb",
+            "up": True,
+            "vlan": 99,
+            "ips": [f"{mgmt_ip}/24"],
+            "servp_info": {},
+            "tx_pkts": random.randint(1000, 10000000),
+            "rx_pkts": random.randint(1000, 50000000),
+            "tx_bytes": random.randint(100000, 1000000000),
+            "rx_bytes": random.randint(100000, 5000000000),
+        }
+
+        # VME.0 — Virtual Management Ethernet (Junos management plane)
+        # Also on the management subnet, same IP as the device management address
+        if_stat["vme.0"] = {
+            "port_id": "vme",
+            "up": True,
+            "ips": [f"{mgmt_ip}/24"],
+            "servp_info": {},
+            "tx_pkts": random.randint(1000000, 100000000),
+            "rx_pkts": random.randint(1000000, 500000000),
+            "tx_bytes": random.randint(1000000000, 80000000000),
+            "rx_bytes": random.randint(1000000000, 40000000000),
+        }
+
+        # ME0.0 — Management Ethernet (out-of-band)
+        if_stat["me0.0"] = {
+            "port_id": "me0",
+            "up": True,
+            "tx_pkts": random.randint(1000000, 100000000),
+            "rx_pkts": random.randint(1000000, 500000000),
+            "tx_bytes": random.randint(1000000000, 80000000000),
+            "rx_bytes": random.randint(1000000000, 40000000000),
+        }
+
+        # lo0.16384 — Internal loopback (localhost)
+        if_stat["lo0.16384"] = {
+            "port_id": "lo0",
+            "up": True,
+            "ips": ["127.0.0.1/0"],
+            "servp_info": {},
+            "tx_pkts": 0,
+            "rx_pkts": 0,
+            "tx_bytes": 0,
+            "rx_bytes": 0,
+        }
+
+        # lo0.16385 — System loopback (routing engine)
+        if_stat["lo0.16385"] = {
+            "port_id": "lo0",
+            "up": True,
+            "tx_pkts": random.randint(100000000, 2000000000),
+            "rx_pkts": random.randint(100000000, 2000000000),
+            "tx_bytes": random.randint(10000000000, 120000000000),
+            "rx_bytes": random.randint(10000000000, 120000000000),
+        }
+
+        return if_stat
+
     def _generate_switch_extras(self, name: str, status: str, mac: str, serial: str,
-                               model: str, model_info: dict, uptime: float, now: int) -> dict:
-        """Generate switch-specific stats fields."""
+                               model: str, model_info: dict, uptime: float, now: int,
+                               ip: str, site_index: int) -> dict:
+        """Generate switch-specific stats fields with correlated interface IPs."""
         num_clients = random.randint(5, 48) if status == "connected" else 0
+        mgmt_ip = ip  # 10.99.{site_index}.{device}
+
         return {
-            "if_stat": {
-                f"ge-0/0/{i}": {
-                    "port_id": f"ge-0/0/{i}",
-                    "up": random.random() < 0.7,
-                    "speed": random.choice([100, 1000, 10000]),
-                    "duplex": "full",
-                    "rx_bytes": random.randint(1000000, 10000000000),
-                    "tx_bytes": random.randint(1000000, 10000000000),
-                }
-                for i in range(0, min(4, 48))  # Sample ports
+            "if_stat": self._generate_switch_if_stat(model_info, ip, site_index),
+            # Override ip_stat to match real Mist format for switches:
+            # netmask 255.255.255.255, ips grouped by VLAN, no dns fields
+            "ip_stat": {
+                "ip": mgmt_ip,
+                "netmask": "255.255.255.255",
+                "gateway": f"10.99.{site_index}.1",
+                "ips": {
+                    "vlan99": f"{mgmt_ip},127.0.0.1",
+                },
             },
             "clients": [
                 {
@@ -396,18 +502,170 @@ class DeviceGenerator:
             },
         }
 
+    def _generate_gateway_if_stat(self, ip: str, site_index: int, status: str) -> dict:
+        """
+        Generate gateway if_stat matching real Mist API format.
+
+        Includes WAN interfaces, LAN sub-interfaces per VLAN (with gateway IPs
+        derived from ORG_NETWORK_TEMPLATES), management fxp0, and loopbacks.
+        Each LAN sub-interface on ge-0/0/3.{vlan_id} carries the correct
+        gateway IP for that VLAN's site-derived subnet.
+        """
+        is_up = status == "connected"
+        if_stat = {}
+
+        # WAN interfaces — ge-0/0/0 and ge-0/0/1
+        for wan in WAN_LINKS:
+            port_num = wan["port"]
+            wan_ip = f"198.51.{100 + port_num}.{random.randint(2, 254)}"
+            key = f"ge-0/0/{port_num}.0"
+            if_stat[key] = {
+                "port_id": f"ge-0/0/{port_num}",
+                "up": is_up,
+                "port_usage": "wan",
+                "wan_name": wan["wan_name"],
+                "network_name": "",
+                "address_mode": wan["address_mode"],
+                "vlan": 0,
+                "ips": [f"{wan_ip}/24"] if is_up else [],
+                "nat_addresses": ["0.0.0.0"],
+                "servp_info": {},
+                "tx_pkts": random.randint(100000000, 20000000000) if is_up else 0,
+                "rx_pkts": random.randint(100000000, 20000000000) if is_up else 0,
+                "tx_bytes": random.randint(1000000000000, 6000000000000) if is_up else 0,
+                "rx_bytes": random.randint(1000000000000, 20000000000000) if is_up else 0,
+            }
+
+        # LAN sub-interfaces on ge-0/0/3 — one per VLAN from ORG_NETWORK_TEMPLATES
+        # Each carries the gateway IP for that VLAN's site-derived /24 subnet
+        for net in ORG_NETWORK_TEMPLATES:
+            vlan_id = net["vlan_id"]
+            # Derive site-specific gateway: 10.{second_octet}.{site_index}.1/24
+            base_parts = net["subnet"].split("/")[0].split(".")
+            gw_ip = f"{base_parts[0]}.{base_parts[1]}.{site_index}.1"
+            subnet_cidr = f"{gw_ip}/24"
+
+            # Management VLAN (99) is the native/untagged VLAN on sub-interface .0
+            # Other VLANs use their VLAN ID as the sub-interface number
+            if vlan_id == 99:
+                sub_iface = "ge-0/0/3.0"
+            else:
+                sub_iface = f"ge-0/0/3.{vlan_id}"
+
+            if_stat[sub_iface] = {
+                "port_id": "ge-0/0/3",
+                "up": is_up,
+                "port_usage": "lan",
+                "network_name": net["name"],
+                "address_mode": "Static",
+                "vlan": vlan_id,
+                "ips": [subnet_cidr] if is_up else [],
+                "nat_addresses": ["0.0.0.0"],
+                "servp_info": {},
+                "tx_pkts": random.randint(1000000, 20000000000) if is_up else 0,
+                "rx_pkts": random.randint(1000000, 15000000000) if is_up else 0,
+                "tx_bytes": random.randint(1000000000, 20000000000000) if is_up else 0,
+                "rx_bytes": random.randint(1000000000, 5000000000000) if is_up else 0,
+            }
+
+        # fxp0.0 — Management interface (out-of-band)
+        if_stat["fxp0.0"] = {
+            "port_id": "fxp0",
+            "up": is_up,
+            "port_usage": "",
+            "network_name": "",
+            "address_mode": "Dynamic",
+            "vlan": 0,
+            "ips": [f"{ip}/24"] if is_up else [],
+            "nat_addresses": ["0.0.0.0"],
+            "servp_info": {},
+            "tx_pkts": random.randint(1000000, 10000000) if is_up else 0,
+            "rx_pkts": random.randint(100000000, 1000000000) if is_up else 0,
+            "tx_bytes": random.randint(100000000, 1000000000) if is_up else 0,
+            "rx_bytes": random.randint(10000000000, 100000000000) if is_up else 0,
+        }
+
+        # lo0.0 — Router loopback with overlay IP
+        if_stat["lo0.0"] = {
+            "port_id": "lo0",
+            "up": True,
+            "port_usage": "",
+            "network_name": "",
+            "address_mode": "Unknown",
+            "vlan": 0,
+            "ips": [f"100.100.0.{site_index}/128"],
+            "nat_addresses": ["0.0.0.0"],
+            "servp_info": {},
+            "tx_pkts": random.randint(100000, 2000000),
+            "rx_pkts": random.randint(100000, 2000000),
+            "tx_bytes": random.randint(10000000, 200000000),
+            "rx_bytes": random.randint(10000000, 200000000),
+        }
+
+        # lo0.16384 — Internal loopback (localhost)
+        if_stat["lo0.16384"] = {
+            "port_id": "lo0",
+            "up": True,
+            "port_usage": "",
+            "network_name": "",
+            "address_mode": "Unknown",
+            "vlan": 0,
+            "ips": ["127.0.0.1/128"],
+            "nat_addresses": ["0.0.0.0"],
+            "servp_info": {},
+            "tx_pkts": random.randint(1000000, 10000000),
+            "rx_pkts": random.randint(1000000, 10000000),
+            "tx_bytes": random.randint(100000000, 2000000000),
+            "rx_bytes": random.randint(100000000, 2000000000),
+        }
+
+        # lo0.16385 — System loopback (routing engine, tunnel endpoints)
+        if_stat["lo0.16385"] = {
+            "port_id": "lo0",
+            "up": True,
+            "port_usage": "",
+            "network_name": "",
+            "address_mode": "Unknown",
+            "vlan": 0,
+            "ips": [
+                f"10.0.0.{site_index}/128",
+                f"128.0.0.{site_index}/128",
+            ],
+            "nat_addresses": ["0.0.0.0"] * 5,
+            "servp_info": {},
+            "tx_pkts": random.randint(100000000, 1000000000),
+            "rx_pkts": random.randint(100000000, 1000000000),
+            "tx_bytes": random.randint(10000000000, 40000000000),
+            "rx_bytes": random.randint(10000000000, 40000000000),
+        }
+
+        return if_stat
+
     def _generate_gateway_extras(self, name: str, status: str, mac: str, serial: str,
-                                model: str, model_info: dict, uptime: float, now: int) -> dict:
-        """Generate gateway-specific stats fields."""
+                                model: str, model_info: dict, uptime: float, now: int,
+                                ip: str, site_index: int) -> dict:
+        """Generate gateway-specific stats fields with correlated interface IPs."""
+        mgmt_ip = ip  # 10.99.{site_index}.{device} (device_index 0 → .1 = gateway IP)
+
+        # Build DHCP stats per LAN network
+        dhcpd_stat = {}
+        for net in ORG_NETWORK_TEMPLATES:
+            num_ips = 245 if net["vlan_id"] != 99 else 200
+            num_leased = random.randint(0, num_ips // 3) if status == "connected" else 0
+            dhcpd_stat[net["name"]] = {
+                "num_ips": num_ips,
+                "num_leased": num_leased,
+            }
+
         return {
-            "if_stat": {
-                "ge-0/0/0": {
-                    "port_id": "ge-0/0/0",
-                    "up": status == "connected",
-                    "speed": 1000,
-                    "duplex": "full",
-                    "rx_bytes": random.randint(1000000000, 100000000000),
-                    "tx_bytes": random.randint(1000000000, 100000000000),
+            "if_stat": self._generate_gateway_if_stat(ip, site_index, status),
+            # Override ip_stat to match real Mist format for gateways
+            "ip_stat": {
+                "ip": mgmt_ip,
+                "netmask": "255.255.255.255",
+                "gateway": f"10.99.{site_index}.1",
+                "ips": {
+                    "vlan99": mgmt_ip,
                 },
             },
             "cpu_stat": {
@@ -420,6 +678,7 @@ class DeviceGenerator:
                 "usage": random.randint(30, 70),
             },
             "service_stat": {},
+            "dhcpd_stat": dhcpd_stat,
             "bgp_peers": [],
             "cluster_stat": None,
             "hostname": name.lower().replace(" ", "-"),
