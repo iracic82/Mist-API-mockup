@@ -212,7 +212,7 @@ function formatMac(mac) {
 
 function checkCoherence(mac, hostname, manufacture) {
   const oui = (mac || '').substring(0, 6).toLowerCase();
-  const prefix = (hostname || '').split('-')[0];
+  const prefix = String(hostname || '').split('-')[0];
   const info = OUI_MAP[oui];
   if (!info) return { ok: true, reason: 'Unknown OUI' };
   if (!info.hostnames.includes(prefix))
@@ -326,7 +326,7 @@ function renderOverview() {
     var oui = (c.mac||'').substring(0,6);
     return ['3ce072','8425db','f4f5d8'].indexOf(oui) !== -1;
   }).length;
-  var desktopsInWireless = state.wireless.filter(function(c) { return (c.hostname||'').indexOf('DESKTOP-') === 0; }).length;
+  var desktopsInWireless = state.wireless.filter(function(c) { return String(c.hostname||'').indexOf('DESKTOP-') === 0; }).length;
 
   function addCard(label, value, sub, color) {
     var card = el('div', {cls:'card'}, [

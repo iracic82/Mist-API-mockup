@@ -15,6 +15,14 @@ FLOOR_NAMES = [
     "Basement", "Mezzanine", "Lobby", "Server Room", "Warehouse",
 ]
 
+# Site-type-specific floor names for realistic topologies
+SITE_FLOOR_TEMPLATES = {
+    "hq": ["Lobby", "1st Floor - Open Office", "2nd Floor - Engineering", "3rd Floor - Executive"],
+    "dc": ["Server Hall A", "Network Operations Center"],
+    "branch_large": ["Main Office"],
+    "branch_small": ["Office"],
+}
+
 MAP_TYPES = ["image", "google"]
 
 
@@ -133,12 +141,18 @@ class MapGenerator:
         lat: float = 37.3382,
         lng: float = -121.8863,
         seed: int = 42,
+        site_name: str = "",
+        floor_names: list = None,
     ) -> list[dict]:
         """Generate multiple maps (floor plans) for a site."""
         maps = []
         for i in range(count):
             map_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{site_id}-map-{i}-{seed}"))
-            name = FLOOR_NAMES[i] if i < len(FLOOR_NAMES) else f"Floor {i + 1}"
+            if floor_names and i < len(floor_names):
+                floor = floor_names[i]
+            else:
+                floor = FLOOR_NAMES[i] if i < len(FLOOR_NAMES) else f"Floor {i + 1}"
+            name = f"{site_name} - {floor}" if site_name else floor
             m = self.generate_map(
                 map_id=map_id,
                 site_id=site_id,

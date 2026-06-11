@@ -21,6 +21,13 @@ from typing import Optional
 # - Apple mobile (3ce072) vs Apple computer (a483e7) — different product divisions
 # - HP Inc. PCs (10b676) vs HP Inc. printers (c8b5ad) — different OUI ranges
 # - HPE switches/servers would use 3822d6 but those are infrastructure, not clients
+# Each profile defines: hostname, OUI, manufacturer, OS, family, model,
+# allowed SSIDs (wireless) / VLANs (wired), and auth methods.
+#
+# SSID-to-VLAN mapping: Corporate→10, Guest→20, IoT→30
+# Wired VLANs: Corporate→10, IoT→30, Voice→40, Server→50
+SSID_VLAN_MAP = {"Corporate": 10, "Guest": 20, "IoT": 30}
+
 CLIENT_PROFILES = [
     # ── Apple mobile ──
     {
@@ -29,6 +36,8 @@ CLIENT_PROFILES = [
         "os": ["iOS 17", "iOS 16"], "family": "Apple", "model": "iPhone",
         "dhcp_vendor_class": "Apple iPhone", "dhcp_request_params": "1 3 6 15 119 252",
         "wireless_weight": 12, "wired_weight": 0,
+        "allowed_ssids": ["Corporate", "Guest"],
+        "wired_vlan": None, "auth_method": None,
     },
     {
         "hostname_prefix": "IPAD",
@@ -36,6 +45,8 @@ CLIENT_PROFILES = [
         "os": ["iPadOS 17", "iPadOS 16"], "family": "Apple", "model": "iPad",
         "dhcp_vendor_class": "Apple iPad", "dhcp_request_params": "1 3 6 15 119 252",
         "wireless_weight": 5, "wired_weight": 0,
+        "allowed_ssids": ["Corporate", "Guest"],
+        "wired_vlan": None, "auth_method": None,
     },
     # ── Apple computer ──
     {
@@ -44,6 +55,8 @@ CLIENT_PROFILES = [
         "os": ["macOS Sonoma", "macOS Ventura"], "family": "Apple", "model": "MacBook",
         "dhcp_vendor_class": "AAPLBSD", "dhcp_request_params": "1 3 6 15 119 252",
         "wireless_weight": 8, "wired_weight": 3,
+        "allowed_ssids": ["Corporate"],
+        "wired_vlan": 10, "auth_method": "dot1x",
     },
     # ── Samsung ──
     {
@@ -52,6 +65,8 @@ CLIENT_PROFILES = [
         "os": ["Android 14", "Android 13"], "family": "Android", "model": "Galaxy",
         "dhcp_vendor_class": "android-dhcp-14", "dhcp_request_params": "1 3 6 15 26 28 51 58 59 43",
         "wireless_weight": 12, "wired_weight": 0,
+        "allowed_ssids": ["Corporate", "Guest"],
+        "wired_vlan": None, "auth_method": None,
     },
     # ── Dell ──
     {
@@ -60,6 +75,8 @@ CLIENT_PROFILES = [
         "os": ["Windows 11", "Windows 10"], "family": "Windows", "model": "Latitude",
         "dhcp_vendor_class": "MSFT 5.0", "dhcp_request_params": "1 3 6 15 31 33 43 44 46 47 119 121 249 252",
         "wireless_weight": 8, "wired_weight": 6,
+        "allowed_ssids": ["Corporate"],
+        "wired_vlan": 10, "auth_method": "dot1x",
     },
     {
         "hostname_prefix": "DESKTOP",
@@ -67,6 +84,8 @@ CLIENT_PROFILES = [
         "os": ["Windows 11", "Windows 10"], "family": "Windows", "model": "OptiPlex",
         "dhcp_vendor_class": "MSFT 5.0", "dhcp_request_params": "1 3 6 15 31 33 43 44 46 47 119 121 249 252",
         "wireless_weight": 0, "wired_weight": 10,
+        "allowed_ssids": [],
+        "wired_vlan": 10, "auth_method": "dot1x",
     },
     # ── HP — PCs use 10b676, printers use c8b5ad (different OUI ranges!) ──
     {
@@ -75,6 +94,8 @@ CLIENT_PROFILES = [
         "os": ["Windows 11", "Windows 10"], "family": "Windows", "model": "EliteBook",
         "dhcp_vendor_class": "MSFT 5.0", "dhcp_request_params": "1 3 6 15 31 33 43 44 46 47 119 121 249 252",
         "wireless_weight": 7, "wired_weight": 5,
+        "allowed_ssids": ["Corporate"],
+        "wired_vlan": 10, "auth_method": "dot1x",
     },
     {
         "hostname_prefix": "PRINTER",
@@ -82,6 +103,8 @@ CLIENT_PROFILES = [
         "os": ["Embedded"], "family": "HP", "model": "LaserJet",
         "dhcp_vendor_class": "Hewlett-Packard JetDirect", "dhcp_request_params": "1 3 6 23 44",
         "wireless_weight": 1, "wired_weight": 8,
+        "allowed_ssids": ["IoT"],
+        "wired_vlan": 30, "auth_method": "mac_auth",
     },
     # ── Lenovo ──
     {
@@ -90,6 +113,8 @@ CLIENT_PROFILES = [
         "os": ["Windows 11", "Windows 10"], "family": "Windows", "model": "ThinkPad",
         "dhcp_vendor_class": "MSFT 5.0", "dhcp_request_params": "1 3 6 15 31 33 43 44 46 47 119 121 249 252",
         "wireless_weight": 8, "wired_weight": 6,
+        "allowed_ssids": ["Corporate"],
+        "wired_vlan": 10, "auth_method": "dot1x",
     },
     # ── Microsoft ──
     {
@@ -98,6 +123,8 @@ CLIENT_PROFILES = [
         "os": ["Windows 11"], "family": "Windows", "model": "Surface",
         "dhcp_vendor_class": "MSFT 5.0", "dhcp_request_params": "1 3 6 15 31 33 43 44 46 47 119 121 249 252",
         "wireless_weight": 5, "wired_weight": 2,
+        "allowed_ssids": ["Corporate"],
+        "wired_vlan": 10, "auth_method": "dot1x",
     },
     # ── Google ──
     {
@@ -106,6 +133,8 @@ CLIENT_PROFILES = [
         "os": ["Android 14"], "family": "Android", "model": "Pixel",
         "dhcp_vendor_class": "android-dhcp-14", "dhcp_request_params": "1 3 6 15 26 28 51 58 59 43",
         "wireless_weight": 4, "wired_weight": 0,
+        "allowed_ssids": ["Corporate", "Guest"],
+        "wired_vlan": None, "auth_method": None,
     },
     # ── Cisco VoIP ──
     {
@@ -114,6 +143,8 @@ CLIENT_PROFILES = [
         "os": ["Cisco IP Phone"], "family": "Cisco", "model": "IP Phone 8845",
         "dhcp_vendor_class": "Cisco Systems, Inc. IP Phone", "dhcp_request_params": "1 66 6 3 15 150 35",
         "wireless_weight": 1, "wired_weight": 8,
+        "allowed_ssids": ["IoT"],
+        "wired_vlan": 40, "auth_method": "mac_auth",
     },
     # ── Zebra scanners ──
     {
@@ -122,16 +153,23 @@ CLIENT_PROFILES = [
         "os": ["Android 11"], "family": "Android", "model": "TC52",
         "dhcp_vendor_class": "android-dhcp-11", "dhcp_request_params": "1 3 6 15 26 28 51 58 59 43",
         "wireless_weight": 3, "wired_weight": 2,
+        "allowed_ssids": ["Corporate", "IoT"],
+        "wired_vlan": 30, "auth_method": "mac_auth",
     },
 ]
 
-SSIDS = ["Corporate", "Guest", "IoT"]
+# SSID → security mapping (realistic enterprise config)
+SSID_KEY_MGMT = {
+    "Corporate": ["wpa2-eap", "wpa3-sae"],
+    "Guest": ["open"],
+    "IoT": ["wpa2-psk"],
+}
+
 BANDS = ["24", "5", "6"]
 CHANNELS_24 = [1, 6, 11]
 CHANNELS_5 = [36, 40, 44, 48, 149, 153, 157, 161]
 CHANNELS_6 = [1, 5, 9, 13, 17, 21]
 
-KEY_MGMTS = ["wpa2-psk", "wpa3-sae", "wpa2-eap", "open"]
 PROTOS = ["a", "ac", "ax", "n"]
 
 
@@ -164,15 +202,16 @@ class ClientGenerator:
         site_id: str,
         ap_mac: str = None,
         ap_id: str = None,
-        vlan_id: int = 10,
+        ap_map_id: str = None,
+        site_maps: list = None,
         client_index: int = 0,
         site_index: int = 0,
     ) -> dict:
         """
         Generate a wireless client matching Mist /stats/clients response.
 
-        All fields (hostname, manufacturer, OUI, OS, family, model) are
-        drawn from a single coherent profile so they always match.
+        All fields are correlated: profile determines allowed SSIDs,
+        SSID determines VLAN and key_mgmt, OUI matches device type.
         """
         profile = random.choice(self._wireless_profiles)
         mac = self._generate_mac(profile["oui"])
@@ -184,11 +223,34 @@ class ClientGenerator:
         else:
             channel = random.choice(CHANNELS_6)
 
-        ssid = random.choice(SSIDS)
+        # SSID from profile's allowed list → VLAN from SSID → key_mgmt from SSID
+        ssid = random.choice(profile["allowed_ssids"])
+        vlan_id = SSID_VLAN_MAP[ssid]
+        key_mgmt = random.choice(SSID_KEY_MGMT[ssid])
         now = int(datetime.utcnow().timestamp())
 
         ap_id_val = ap_id or str(uuid.uuid4())
         wlan_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"wlan-{ssid}"))
+
+        # Place client on same map as its AP, with randomized coordinates
+        map_id = ap_map_id
+        x = None
+        y = None
+        x_m = None
+        y_m = None
+        num_locating_aps = None
+        if map_id and site_maps:
+            site_map = next((m for m in site_maps if m["id"] == map_id), None)
+            if site_map:
+                w = site_map.get("width", 1650)
+                h = site_map.get("height", 2550)
+                w_m = site_map.get("width_m", 57.0)
+                h_m = site_map.get("height_m", 88.0)
+                x = round(random.uniform(50.0, float(w) - 50), 2)
+                y = round(random.uniform(50.0, float(h) - 50), 2)
+                x_m = round(x / (float(w) / w_m), 6)
+                y_m = round(y / (float(h) / h_m), 6)
+                num_locating_aps = random.randint(1, 4)
 
         return {
             "mac": mac,
@@ -215,7 +277,7 @@ class ClientGenerator:
             "rx_pkts": random.randint(1000, 10000000),
             "tx_pkts": random.randint(1000, 10000000),
             "proto": random.choice(PROTOS),
-            "key_mgmt": random.choice(KEY_MGMTS),
+            "key_mgmt": key_mgmt,
             "manufacture": profile["manufacturer"],
             "os": random.choice(profile["os"]),
             "family": profile["family"],
@@ -227,6 +289,17 @@ class ClientGenerator:
             "uptime": float(random.randint(60, 86400 * 7)),
             "assoc_time": now - random.randint(60, 86400),
             "username": "",
+            "group": "",
+            "psk_id": "",
+            "annotation": "unknown",
+            "_ttl": random.randint(100, 600),
+            "_id": mac,
+            "map_id": map_id,
+            "x": x,
+            "y": y,
+            "x_m": x_m,
+            "y_m": y_m,
+            "num_locating_aps": num_locating_aps,
         }
 
     def generate_wired_client(
@@ -235,17 +308,24 @@ class ClientGenerator:
         org_id: str,
         device_mac: str = None,
         port_id: str = None,
-        vlan_id: int = 10,
         client_index: int = 0,
         site_index: int = 0,
     ) -> dict:
         """
         Generate a wired client matching Mist wired_clients/search response.
 
-        All fields drawn from a single coherent profile (more desktops,
-        printers, VoIP phones — things that are typically wired).
+        VLAN and auth_method are determined by profile (device type):
+        - Laptops/desktops → Corporate VLAN 10, dot1x
+        - Printers/scanners → IoT VLAN 30, mac_auth
+        - VoIP phones → Voice VLAN 40, mac_auth
         """
         profile = random.choice(self._wired_profiles)
+        vlan_id = profile["wired_vlan"]
+        auth_method = profile["auth_method"]
+        # VLAN name from network templates
+        vlan_names = {10: "Corporate", 20: "Guest", 30: "IoT", 40: "Voice", 50: "Server"}
+        vlan_name = vlan_names.get(vlan_id, "")
+
         mac = self._generate_mac(profile["oui"])
         ip = f"10.{vlan_id}.{site_index}.{(client_index % 254) + 2}"
         dev_mac = device_mac or self._generate_mac()
@@ -277,22 +357,23 @@ class ClientGenerator:
             "last_hostname": hostname,
             "last_port_id": p_id,
             "last_vlan": vlan_id,
-            "last_vlan_name": "",
+            "last_vlan_name": vlan_name,
             "last_device_mac": dev_mac,
             "dhcp_hostname": hostname.lower(),
-            "dhcp_fqdn": f"{hostname.lower()}.local",
+            "dhcp_fqdn": f"{hostname.lower()}.{vlan_name.lower()}.local" if vlan_name else f"{hostname.lower()}.local",
             "dhcp_client_identifier": mac,
             "dhcp_client_options": [],
             "dhcp_vendor_class_identifier": profile["dhcp_vendor_class"],
             "dhcp_request_params": profile["dhcp_request_params"],
             "auth_state": "authenticated",
-            "auth_method": random.choice(["mac_auth", "dot1x", "mab"]),
+            "auth_method": auth_method,
         }
 
     def generate_wireless_clients_for_site(
-        self, site_id: str, devices: list[dict], count: int, site_index: int = 0
+        self, site_id: str, devices: list[dict], count: int, site_index: int = 0,
+        site_maps: list = None,
     ) -> list[dict]:
-        """Generate wireless clients distributed across APs."""
+        """Generate wireless clients distributed across APs with location data."""
         aps = [d for d in devices if d.get("type") == "ap"]
         clients = []
         for i in range(count):
@@ -301,7 +382,8 @@ class ClientGenerator:
                 site_id=site_id,
                 ap_mac=ap.get("mac") if ap else None,
                 ap_id=ap.get("id") if ap else None,
-                vlan_id=random.choice([10, 20, 30]),
+                ap_map_id=ap.get("map_id") if ap else None,
+                site_maps=site_maps,
                 client_index=i,
                 site_index=site_index,
             )
@@ -323,7 +405,6 @@ class ClientGenerator:
                 org_id=org_id,
                 device_mac=sw.get("mac") if sw else None,
                 port_id=f"ge-0/0/{random.randint(1, 48)}",
-                vlan_id=random.choice([10, 20, 40, 50]),
                 client_index=i,
                 site_index=site_index,
             )

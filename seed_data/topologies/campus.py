@@ -72,7 +72,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
     # Sites
     # ====================================
     site_configs = [
-        # Large sites
+        # Large sites — HQ has multiple floors (lobby, open office, engineering, exec)
         {
             "name": "HQ-Building-A", "location_idx": 0,  # San Jose
             "devices": {
@@ -81,6 +81,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP45", "count": 15, "name_prefix": "HQ-A-AP"}],
             },
             "maps": 3, "wireless_clients": 120, "wired_clients": 80,
+            "floor_names": ["Lobby & Reception", "1st Floor - Open Office", "2nd Floor - Engineering"],
         },
         {
             "name": "HQ-Building-B", "location_idx": 0,  # San Jose
@@ -90,7 +91,9 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP43", "count": 8, "name_prefix": "HQ-B-AP"}],
             },
             "maps": 2, "wireless_clients": 60, "wired_clients": 40,
+            "floor_names": ["1st Floor - Sales", "2nd Floor - Marketing"],
         },
+        # Data center — server halls & NOC, not office floors
         {
             "name": "DC-East", "location_idx": 1,  # New York
             "devices": {
@@ -99,8 +102,9 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP33", "count": 2, "name_prefix": "DC-E-AP"}],
             },
             "maps": 2, "wireless_clients": 10, "wired_clients": 200,
+            "floor_names": ["Server Hall A", "Network Operations Center"],
         },
-        # Medium branches
+        # Medium branches — single open office
         {
             "name": "Branch-Chicago", "location_idx": 2,
             "devices": {
@@ -109,6 +113,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP33", "count": 4, "name_prefix": "CHI-AP"}],
             },
             "maps": 1, "wireless_clients": 25, "wired_clients": 15,
+            "floor_names": ["Main Office"],
         },
         {
             "name": "Branch-Austin", "location_idx": 3,
@@ -118,8 +123,9 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP32", "count": 3, "name_prefix": "AUS-AP"}],
             },
             "maps": 1, "wireless_clients": 20, "wired_clients": 10,
+            "floor_names": ["Main Office"],
         },
-        # Small branches
+        # Small branches — single office floor
         {
             "name": "Branch-Seattle", "location_idx": 4,
             "devices": {
@@ -128,6 +134,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP34", "count": 3, "name_prefix": "SEA-AP"}],
             },
             "maps": 1, "wireless_clients": 18, "wired_clients": 12,
+            "floor_names": ["Office"],
         },
         {
             "name": "Branch-Denver", "location_idx": 5,
@@ -137,6 +144,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP32", "count": 2, "name_prefix": "DEN-AP"}],
             },
             "maps": 1, "wireless_clients": 15, "wired_clients": 10,
+            "floor_names": ["Office"],
         },
         {
             "name": "Branch-Boston", "location_idx": 6,
@@ -146,6 +154,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP33", "count": 3, "name_prefix": "BOS-AP"}],
             },
             "maps": 1, "wireless_clients": 20, "wired_clients": 12,
+            "floor_names": ["Office"],
         },
         {
             "name": "Branch-Atlanta", "location_idx": 7,
@@ -155,6 +164,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP24", "count": 2, "name_prefix": "ATL-AP"}],
             },
             "maps": 1, "wireless_clients": 15, "wired_clients": 8,
+            "floor_names": ["Office"],
         },
         {
             "name": "Branch-Miami", "location_idx": 8,
@@ -164,6 +174,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP24", "count": 2, "name_prefix": "MIA-AP"}],
             },
             "maps": 1, "wireless_clients": 12, "wired_clients": 8,
+            "floor_names": ["Office"],
         },
         {
             "name": "Branch-Dallas", "location_idx": 9,
@@ -173,6 +184,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP12", "count": 2, "name_prefix": "DAL-AP"}],
             },
             "maps": 1, "wireless_clients": 12, "wired_clients": 8,
+            "floor_names": ["Office"],
         },
         {
             "name": "Branch-Phoenix", "location_idx": 10,
@@ -182,6 +194,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP12", "count": 2, "name_prefix": "PHX-AP"}],
             },
             "maps": 1, "wireless_clients": 10, "wired_clients": 5,
+            "floor_names": ["Office"],
         },
         {
             "name": "Branch-Portland", "location_idx": 11,
@@ -191,6 +204,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
                 "aps": [{"model": "AP12", "count": 2, "name_prefix": "PDX-AP"}],
             },
             "maps": 1, "wireless_clients": 10, "wired_clients": 5,
+            "floor_names": ["Office"],
         },
     ]
 
@@ -215,6 +229,8 @@ def generate_campus_topology(seed: int = 42) -> dict:
             lat=location["lat"],
             lng=location["lng"],
             seed=seed,
+            site_name=sc["name"],
+            floor_names=sc.get("floor_names"),
         )
         maps.extend(site_maps)
         map_ids = [m["id"] for m in site_maps]
@@ -248,6 +264,7 @@ def generate_campus_topology(seed: int = 42) -> dict:
             devices=site_devices,
             count=sc["wireless_clients"],
             site_index=i + 1,
+            site_maps=site_maps,
         )
         wireless_clients.extend(w_clients)
 
