@@ -1,0 +1,88 @@
+name: Reseed bench
+
+# Re-seeds the isolated benchmark stack (Environment=bench) whenever the scale
+# knob changes. Triggers ONLY on push to main — never on pull_request — so a
+# fork PR can never assume the AWS role. The merge itself is gated by branch
+# protection, so "who can reseed" == "who can merge to main".
+on:
+  push:
+    branches: [main]
+    paths:
+      - "seed_data/topologies/scale.py"
+      - "seed_data/generators/**"
+      - ".github/workflows/reseed-bench.yml"
+  workflow_dispatch: {}   # allow manual reseed from the Actions tab
+
+# Never run two reseeds at once against the same table.
+concurrency:
+  group: reseed-bench
+  cancel-in-progress: false
+
+permissions:
+  id-token: write    # required for GitHub OIDC -> AWS
+  contents: read
+
+jobs:
+  reseed:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: eu-west-1
+      AWS_BENCH_ROLE_ARN: ${{ secrets.AWS_BENCH_ROLE_ARN }}
+      CONFIG_TABLE: MistMock_Config_bench
+      DATA_TABLE: MistMock_Data_bench
+    steps:
+      - name: Preflight — is OIDC configured?
+        id: preflight
+        run: |
+          if [ -z "${AWS_BENCH_ROLE_ARN}" ]; then
+            echo "::notice title=Reseed skipped::AWS_BENCH_ROLE_ARN secret is not set. \
+            Configure GitHub OIDC (infra/github-oidc-bench/) and add the secret to enable auto-reseed."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.preflight.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: steps.preflight.outputs.configured == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        if: steps.preflight.outputs.configured == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Configure AWS credentials (OIDC)
+        if: steps.preflight.outputs.configured == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_BENCH_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: gha-reseed-bench
+
+      - name: Reseed the bench topology
+        if: steps.preflight.outputs.configured == 'true'
+        run: |
+          python seed_data/seed_dynamodb.py \
+            --topology scale \
+            --config-table "${CONFIG_TABLE}" \
+            --data-table "${DATA_TABLE}" \
+            --default-topology scale \
+            --region "${AWS_REGION}" \
+            --clear
+
+      - name: Summary
+        if: steps.preflight.outputs.configured == 'true'
+        run: |
+          ASSETS=$(python -c "from seed_data.topologies.scale import TARGET_ASSETS; print(TARGET_ASSETS)")
+          {
+            echo "### Bench reseeded ✅"
+            echo ""
+            echo "- Topology: \`scale\`"
+            echo "- Target assets: **${ASSETS}**"
+            echo "- Data table: \`${DATA_TABLE}\` (${AWS_REGION})"
+          } >> "$GITHUB_STEP_SUMMARY"

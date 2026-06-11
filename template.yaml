@@ -15,7 +15,7 @@ Globals:
       Variables:
         CONFIG_TABLE: !Ref ConfigTable
         DATA_TABLE: !Ref DataTable
-        DEFAULT_TOPOLOGY: campus
+        DEFAULT_TOPOLOGY: !Ref DefaultTopology
         LOG_LEVEL: INFO
         API_KEY_SECRET_NAME: mist-mock-api/api-key
 
@@ -26,7 +26,15 @@ Parameters:
     AllowedValues:
       - dev
       - prod
-    Description: Deployment environment
+      - bench
+    Description: Deployment environment (bench = isolated load/benchmark stack)
+
+  DefaultTopology:
+    Type: String
+    Default: campus
+    Description: >
+      Topology served when a request omits the X-Mock-Topology header.
+      Set to "scale" on the bench stack so benchmark clients need no header.
 
 Resources:
   # ============================================
