@@ -27,3 +27,6 @@ Thumbs.db
 # Environment
 .env
 *.env.local
+
+# AI tooling (local only — not for the public repo)
+CLAUDE.md
