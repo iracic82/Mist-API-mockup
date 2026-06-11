@@ -15,9 +15,9 @@ Globals:
       Variables:
         CONFIG_TABLE: !Ref ConfigTable
         DATA_TABLE: !Ref DataTable
-        DEFAULT_TOPOLOGY: campus
+        DEFAULT_TOPOLOGY: !Ref DefaultTopology
         LOG_LEVEL: INFO
-        API_KEY_SECRET_NAME: mist-mock-api/api-key
+        API_KEY_SECRET_NAME: !Ref ApiKeySecretName
 
 Parameters:
   Environment:
@@ -26,7 +26,23 @@ Parameters:
     AllowedValues:
       - dev
       - prod
-    Description: Deployment environment
+      - bench
+    Description: Deployment environment (bench = isolated load/benchmark stack)
+
+  DefaultTopology:
+    Type: String
+    Default: campus
+    Description: >
+      Topology served when a request omits the X-Mock-Topology header.
+      Set to "scale" on the bench stack so benchmark clients need no header.
+
+  ApiKeySecretName:
+    Type: String
+    Default: mist-mock-api/api-key
+    Description: >
+      Secrets Manager secret holding the API key the Lambda authorizes against.
+      The key value lives ONLY in Secrets Manager, never in git. Give the bench
+      stack its own (e.g. mist-mock-api/api-key-bench) to isolate its credential.
 
 Resources:
   # ============================================
@@ -113,7 +129,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:mist-mock-api/api-key-*"
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ApiKeySecretName}-*"
       Events:
         # Mist API Endpoints
         GetSelf:

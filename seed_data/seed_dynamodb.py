@@ -28,6 +28,7 @@ from botocore.config import Config
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from seed_data.topologies.campus import generate_campus_topology
+from seed_data.topologies.scale import generate_scale_topology
 
 # Entity type constants (matching src/db/dynamodb.py)
 ENTITY_USER_SELF = "user_self"
@@ -352,8 +353,9 @@ def main():
     parser.add_argument("--local", action="store_true", help="Use local DynamoDB")
     parser.add_argument("--profile", type=str, default=None, help="AWS profile name")
     parser.add_argument("--region", type=str, default="eu-west-1", help="AWS region")
-    parser.add_argument("--topology", type=str, choices=["campus", "all"], default="all",
-                        help="Which topology to seed")
+    parser.add_argument("--topology", type=str, choices=["campus", "scale", "all"], default="all",
+                        help="Which topology to seed. 'scale' is the large benchmark "
+                             "topology and is intentionally excluded from 'all'.")
     parser.add_argument("--config-table", type=str, default="MistMock_Config_prod", help="Config table name")
     parser.add_argument("--data-table", type=str, default="MistMock_Data_prod", help="Data table name")
     parser.add_argument("--default-topology", type=str, default="campus", help="Default active topology")
@@ -395,6 +397,12 @@ def main():
     if args.topology in ["campus", "all"]:
         print("\nGenerating campus topology...")
         topologies_to_seed.append(generate_campus_topology())
+
+    # 'scale' is opt-in only — never part of 'all' — so a routine demo reseed
+    # can't accidentally generate the large benchmark dataset.
+    if args.topology == "scale":
+        print("\nGenerating scale/benchmark topology...")
+        topologies_to_seed.append(generate_scale_topology())
 
     total_items = 0
     for topology_data in topologies_to_seed:

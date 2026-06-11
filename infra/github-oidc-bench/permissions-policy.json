@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReseedBenchTablesOnly",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:BatchWriteItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:GetItem",
+        "dynamodb:BatchGetItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:DescribeTable"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:__AWS_REGION__:__AWS_ACCOUNT_ID__:table/MistMock_Config_bench",
+        "arn:aws:dynamodb:__AWS_REGION__:__AWS_ACCOUNT_ID__:table/MistMock_Data_bench",
+        "arn:aws:dynamodb:__AWS_REGION__:__AWS_ACCOUNT_ID__:table/MistMock_Data_bench/index/*"
+      ]
+    }
+  ]
+}

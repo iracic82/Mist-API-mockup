@@ -257,6 +257,37 @@ python seed_data/seed_dynamodb.py \
     --topology my_topology
 ```
 
+## Benchmarking at Scale
+
+For load- and benchmark-testing an ingesting system (e.g. an Infoblox on-prem
+host) against a large inventory, the repo ships a dedicated **`scale`** topology
+and an isolated **`bench`** deployment — completely separate from the demo
+`campus` data.
+
+**Resize the benchmark with a one-line pull request:** edit a single constant in
+`seed_data/topologies/scale.py` and open a PR.
+
+```python
+# seed_data/topologies/scale.py
+TARGET_ASSETS = 15000   # devices + clients; change this, open a PR
+```
+
+On merge, a GitHub Action (`Reseed bench`) reseeds the bench DynamoDB via OIDC —
+no credentials stored in the repo. The `scale` topology reuses the same
+generators as `campus`, so every benchmark asset keeps realistic VLAN/SSID/auth
+correlation and floor-map location.
+
+```bash
+# Seed the benchmark topology to the isolated bench stack (manual / owner)
+python seed_data/seed_dynamodb.py --topology scale \
+    --config-table MistMock_Config_bench --data-table MistMock_Data_bench \
+    --default-topology scale --profile okta-sso --region eu-west-1 --clear
+```
+
+📖 **Full walkthrough — reaching the endpoint, the scale-via-PR flow, branch
+protection, and one-time owner setup (bench deploy + OIDC):**
+[`docs/benchmarking-scale-guide.md`](docs/benchmarking-scale-guide.md)
+
 ## Data Viewer (Docker)
 
 A built-in web UI to browse and validate all seeded data — devices, wireless/wired clients, sites, networks — with MAC/hostname coherence checks.
