@@ -15,7 +15,7 @@ THE ONE KNOB
 ────────────────────────────────────────────────────────────────────────────
 To change the size of the benchmark, edit a SINGLE number below and open a PR:
 
-    TARGET_ASSETS = 15000
+    TARGET_ASSETS = 50000
 
 An "asset" here means what Infoblox counts: a device OR a client
 (devices + wireless_clients + wired_clients). Maps, networks, sites and the
@@ -41,13 +41,13 @@ from seed_data.generators.map_generator import MapGenerator
 # ════════════════════════════════════════════════════════════════════════════
 # THE SCALE KNOB — change this one number in a PR to resize the benchmark.
 # ════════════════════════════════════════════════════════════════════════════
-TARGET_ASSETS = 15000
+TARGET_ASSETS = 50000
 
 # ─── Distribution shape (rarely need to touch these) ────────────────────────
 # Each benchmark site has a fixed device footprint and is then filled with
 # clients to reach the nominal per-site asset count. With these defaults a
-# "typical" site is 15 devices + 235 clients = 250 assets, so 15,000 assets
-# lands on ~60 sites — a realistic multi-site enterprise.
+# "typical" site is 15 devices + 235 clients = 250 assets, so 50,000 assets
+# lands on ~200 sites — a realistic multi-site enterprise.
 DEVICES_PER_SITE = 15  # 1 gateway + 2 switches + 12 APs (see _site_device_config)
 NOMINAL_ASSETS_PER_SITE = 250
 
