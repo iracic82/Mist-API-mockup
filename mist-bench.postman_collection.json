@@ -1,0 +1,462 @@
+{
+  "info": {
+    "name": "Mist Mock API \u2014 Benchmark (scale / 15k assets)",
+    "description": "Prepopulated Postman collection for the ISOLATED benchmark stack (Environment=bench) of the Mock Juniper Mist API.\n\nBase URL, org_id, site_id and map_id are already filled in for the live bench data (deterministic seed). The bench stack DEFAULTS to the `scale` topology (~15,000 assets across 60 sites), so no X-Mock-Topology header is required.\n\n>> ONE STEP BEFORE USE: set the `apiKey` collection variable.\nThe key lives only in AWS Secrets Manager (never in git). Retrieve it with:\n\n  aws secretsmanager get-secret-value --secret-id mist-mock-api/api-key-bench --query SecretString --output text --profile okta-sso --region eu-west-1\n\nPaste the result into the `apiKey` variable (Collection > Variables), then Send any request.\n\nAuth is applied at the collection level as: Authorization: Token {{apiKey}}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      },
+      {
+        "key": "key",
+        "value": "Authorization",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "Token {{apiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://mist-api-bench.highvelocitynetworking.com",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "PASTE_BENCH_API_KEY_HERE",
+      "type": "string"
+    },
+    {
+      "key": "org_id",
+      "value": "fbf72635-a426-5255-a2c6-dd28b0e8742a",
+      "type": "string"
+    },
+    {
+      "key": "site_id",
+      "value": "abae23c7-ea46-5928-8463-5bb19601e16e",
+      "type": "string"
+    },
+    {
+      "key": "map_id",
+      "value": "17b3f92e-2567-56dc-a356-9a5aaa3aa6c5",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Validation",
+      "item": [
+        {
+          "name": "Get Self (validate credentials)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/self",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "self"
+              ]
+            },
+            "description": "Returns the admin user + org privileges. Use the org_id here to drive the other calls."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "Get Organization",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orgs/{{org_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{org_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sites",
+      "item": [
+        {
+          "name": "List Org Sites",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orgs/{{org_id}}/sites?limit=1000&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{org_id}}",
+                "sites"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "60 benchmark sites. Page-based pagination (X-Page-Total response header)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Devices",
+      "item": [
+        {
+          "name": "List Site Device Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/stats/devices?type=all&limit=1000&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "{{site_id}}",
+                "stats",
+                "devices"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "all",
+                  "description": "all | ap | switch | gateway"
+                },
+                {
+                  "key": "limit",
+                  "value": "1000"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Org Device Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orgs/{{org_id}}/stats/devices?type=all&limit=1000&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{org_id}}",
+                "stats",
+                "devices"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "all",
+                  "description": "all | ap | switch | gateway"
+                },
+                {
+                  "key": "limit",
+                  "value": "1000"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Org-wide device stats (900 devices across all benchmark sites)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Organization Networks",
+      "item": [
+        {
+          "name": "List Org Networks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orgs/{{org_id}}/networks?limit=1000&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{org_id}}",
+                "networks"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Site Wireless Clients",
+      "item": [
+        {
+          "name": "List Site Wireless Client Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/stats/clients?limit=1000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "{{site_id}}",
+                "stats",
+                "clients"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000"
+                }
+              ]
+            },
+            "description": "Limit-based pagination. Clients carry correlated SSID->VLAN->key_mgmt + map location."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Site Wired Clients",
+      "item": [
+        {
+          "name": "Search Site Wired Clients",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/wired_clients/search?limit=1000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "{{site_id}}",
+                "wired_clients",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000"
+                }
+              ]
+            },
+            "description": "Link-based pagination: follow the `next` URL in the response envelope for more pages."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Site Networks (Derived)",
+      "item": [
+        {
+          "name": "List Site Derived Networks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/networks/derived?resolve=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "{{site_id}}",
+                "networks",
+                "derived"
+              ],
+              "query": [
+                {
+                  "key": "resolve",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Site Maps",
+      "item": [
+        {
+          "name": "List Site Maps",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/maps?limit=1000&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "{{site_id}}",
+                "maps"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Site Map",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "user-agent",
+                "value": "AssetInsights/1.0 Infoblox"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sites/{{site_id}}/maps/{{map_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "{{site_id}}",
+                "maps",
+                "{{map_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

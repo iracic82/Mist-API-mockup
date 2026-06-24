@@ -30,3 +30,7 @@ Thumbs.db
 
 # AI tooling (local only — not for the public repo)
 CLAUDE.md
+
+# Key-embedded local artifacts (Secrets Manager values baked in — never commit)
+*.local.json
+mist-bench.postman_collection.local.json

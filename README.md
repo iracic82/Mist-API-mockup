@@ -264,6 +264,11 @@ host) against a large inventory, the repo ships a dedicated **`scale`** topology
 and an isolated **`bench`** deployment — completely separate from the demo
 `campus` data.
 
+**Live benchmark endpoint:** `https://mist-api-bench.highvelocitynetworking.com`
+— a custom domain (no `/Prod` stage prefix in the path), already serving the
+`scale` topology (~15,000 assets across 60 sites). Contact **Igor Racic** for the
+API key, or import the prepopulated Postman collection (see the guide below).
+
 **Resize the benchmark with a one-line pull request:** edit a single constant in
 `seed_data/topologies/scale.py` and open a PR.
 
