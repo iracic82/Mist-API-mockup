@@ -205,6 +205,23 @@ async function apiFetch(path) {
   return res.json();
 }
 
+// Paginate a page-based endpoint (limit + page) until a short page — no row cap,
+// so large topologies (e.g. the 50k benchmark) load in full, not just page 1.
+async function apiFetchAllPaged(basePath, pageSize) {
+  pageSize = pageSize || 1000;
+  var all = [], page = 1;
+  while (true) {
+    var sep = basePath.indexOf('?') === -1 ? '?' : '&';
+    var chunk = await apiFetch(basePath + sep + 'limit=' + pageSize + '&page=' + page);
+    var arr = Array.isArray(chunk) ? chunk : (chunk.results || []);
+    all = all.concat(arr);
+    if (arr.length < pageSize) break;
+    page++;
+    if (page > 2000) break; // hard safety stop
+  }
+  return all;
+}
+
 function formatMac(mac) {
   if (!mac || mac.length !== 12) return mac || '';
   return mac.match(/.{2}/g).join(':');
@@ -238,8 +255,8 @@ async function loadAll() {
     if (!state.org_id) throw new Error('No org_id in /self');
 
     const [sites, devices, orgNets] = await Promise.all([
-      apiFetch('/api/v1/orgs/' + state.org_id + '/sites?limit=100'),
-      apiFetch('/api/v1/orgs/' + state.org_id + '/stats/devices?limit=1000'),
+      apiFetchAllPaged('/api/v1/orgs/' + state.org_id + '/sites'),
+      apiFetchAllPaged('/api/v1/orgs/' + state.org_id + '/stats/devices'),
       apiFetch('/api/v1/orgs/' + state.org_id + '/networks?limit=100'),
     ]);
     state.sites = sites; state.devices = devices; state.networks = orgNets;
