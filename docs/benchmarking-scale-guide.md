@@ -34,14 +34,14 @@ You need two things from the environment owner (Igor):
 
 | Thing | Example |
 |-------|---------|
-| **Bench base URL** | `https://<bench-api>.execute-api.eu-west-1.amazonaws.com/Prod` |
+| **Bench base URL** | `https://mist-api-bench.highvelocitynetworking.com` (custom domain — **no `/Prod`** in the path) |
 | **API key** | `Authorization: Token <key>` |
 
 The bench stack defaults its topology to `scale`, so a normal call already
 returns the large dataset:
 
 ```bash
-curl -s "https://<bench-api>.../api/v1/self" \
+curl -s "https://mist-api-bench.highvelocitynetworking.com/api/v1/self" \
   -H "Authorization: Token <key>" \
   -H "user-agent: AssetInsights/1.0 Infoblox"
 ```
@@ -50,7 +50,7 @@ To be explicit (or to hit a bench that didn't default to `scale`), add the
 topology header:
 
 ```bash
-curl -s "https://<bench-api>.../api/v1/orgs/<org_id>/sites" \
+curl -s "https://mist-api-bench.highvelocitynetworking.com/api/v1/orgs/<org_id>/sites" \
   -H "Authorization: Token <key>" \
   -H "X-Mock-Topology: scale"
 ```
