@@ -1,0 +1,6 @@
+# The data-viewer image needs ONLY these two files. Exclude everything else so
+# no secret (e.g. *.local.json with a baked API key), venv, or git history can
+# ever enter the build context that gets pushed to a public registry.
+*
+!data-viewer.html
+!docker-entrypoint.sh
