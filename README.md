@@ -266,7 +266,7 @@ and an isolated **`bench`** deployment — completely separate from the demo
 
 **Live benchmark endpoint:** `https://mist-api-bench.highvelocitynetworking.com`
 — a custom domain (no `/Prod` stage prefix in the path), already serving the
-`scale` topology (~15,000 assets across 60 sites). Contact **Igor Racic** for the
+`scale` topology (~50,000 assets across 200 sites). Contact **Igor Racic** for the
 API key, or import the prepopulated Postman collection (see the guide below).
 
 **Resize the benchmark with a one-line pull request:** edit a single constant in
@@ -274,7 +274,7 @@ API key, or import the prepopulated Postman collection (see the guide below).
 
 ```python
 # seed_data/topologies/scale.py
-TARGET_ASSETS = 15000   # devices + clients; change this, open a PR
+TARGET_ASSETS = 50000   # devices + clients; change this, open a PR
 ```
 
 On merge, a GitHub Action (`Reseed bench`) reseeds the bench DynamoDB via OIDC —
