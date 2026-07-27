@@ -112,19 +112,13 @@ def list_org_device_stats(topology: str, org_id: str, query_params: dict) -> dic
     if not org:
         return _response(404, {"detail": f"Organization {org_id} not found"})
 
-    # Get all sites for this org
-    all_sites = db.get_entities_by_parent(
-        topology, ENTITY_ORGANIZATION, org_id, ENTITY_SITE
-    )
-
-    # Aggregate devices across all sites
-    all_devices = []
-    for site in all_sites:
-        site_id = site.get("id")
-        site_devices = db.get_entities_by_parent(
-            topology, ENTITY_SITE, site_id, ENTITY_DEVICE_STATS
-        )
-        all_devices.extend(site_devices)
+    # Fetch all devices for the topology in one query, then filter to this org.
+    # The per-site loop (N queries for N sites) hits API Gateway's 29-second
+    # hard timeout once site count grows beyond ~200 sites.
+    all_devices = [
+        d for d in db.get_entities(topology, ENTITY_DEVICE_STATS)
+        if d.get("org_id") == org_id
+    ]
 
     # Apply type filter
     device_type = query_params.get("type", "all")

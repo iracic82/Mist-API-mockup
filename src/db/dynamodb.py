@@ -138,6 +138,9 @@ class DynamoDBClient:
         """
         Get all entities of a given type for a topology.
 
+        Follows DynamoDB LastEvaluatedKey pagination so the full result set
+        is returned regardless of how many 1 MB pages DynamoDB needs internally.
+
         Args:
             topology: Topology name (e.g., 'campus')
             entity_type: Entity type (e.g., 'organization', 'site')
@@ -147,14 +150,20 @@ class DynamoDBClient:
         """
         try:
             pk = f"{topology}#{entity_type}"
-            response = self.client.query(
-                TableName=self.data_table,
-                KeyConditionExpression="PK = :pk",
-                ExpressionAttributeValues={
-                    ":pk": {"S": pk}
-                }
-            )
-            return [self._deserialize_item(item) for item in response.get("Items", [])]
+            items = []
+            kwargs = {
+                "TableName": self.data_table,
+                "KeyConditionExpression": "PK = :pk",
+                "ExpressionAttributeValues": {":pk": {"S": pk}},
+            }
+            while True:
+                response = self.client.query(**kwargs)
+                items.extend(response.get("Items", []))
+                last = response.get("LastEvaluatedKey")
+                if not last:
+                    break
+                kwargs["ExclusiveStartKey"] = last
+            return [self._deserialize_item(item) for item in items]
         except Exception as e:
             logger.error(f"Error getting entities: {e}")
             return []
