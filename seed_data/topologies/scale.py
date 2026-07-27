@@ -171,6 +171,8 @@ def generate_scale_topology(seed: int = 42, target_assets: int = TARGET_ASSETS) 
     # ── Sites (auto-planned to hit target_assets exactly) ──
     site_configs = _plan_sites(target_assets)
 
+    cumulative_assets = 0  # global index used to assign tag sets (1 set per 1 000 assets)
+
     for i, sc in enumerate(site_configs):
         location = US_LOCATIONS[sc["location_idx"] % len(US_LOCATIONS)]
         site_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{org_id}-site-{sc['name']}-{seed}"))
@@ -205,8 +207,11 @@ def generate_scale_topology(seed: int = 42, target_assets: int = TARGET_ASSETS) 
             site_maps=site_maps,
             seed=seed,
             site_index=i + 1,
+            global_offset=cumulative_assets,
+            enable_tags=True,
         )
         device_stats.extend(site_devices)
+        cumulative_assets += len(site_devices)
 
         site_derived = network_gen.generate_derived_networks_for_site(
             site_id=site_id,
@@ -223,8 +228,11 @@ def generate_scale_topology(seed: int = 42, target_assets: int = TARGET_ASSETS) 
             count=sc["wireless_clients"],
             site_index=i + 1,
             site_maps=site_maps,
+            global_offset=cumulative_assets,
+            enable_tags=True,
         )
         wireless_clients.extend(w_clients)
+        cumulative_assets += len(w_clients)
 
         wr_clients = client_gen.generate_wired_clients_for_site(
             site_id=site_id,
@@ -232,8 +240,11 @@ def generate_scale_topology(seed: int = 42, target_assets: int = TARGET_ASSETS) 
             devices=site_devices,
             count=sc["wired_clients"],
             site_index=i + 1,
+            global_offset=cumulative_assets,
+            enable_tags=True,
         )
         wired_clients.extend(wr_clients)
+        cumulative_assets += len(wr_clients)
 
     asset_count = len(device_stats) + len(wireless_clients) + len(wired_clients)
 

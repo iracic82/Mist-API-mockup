@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from seed_data.generators.network_generator import ORG_NETWORK_TEMPLATES
+from seed_data.generators.tag_generator import generate_tag_set
 
 # Mist device models by type
 MIST_DEVICE_MODELS = {
@@ -754,6 +755,8 @@ class DeviceGenerator:
         site_maps: list = None,
         seed: int = 42,
         site_index: int = 0,
+        global_offset: int = 0,
+        enable_tags: bool = False,
     ) -> list[dict]:
         """
         Generate all devices for a site based on configuration.
@@ -844,5 +847,9 @@ class DeviceGenerator:
                 )
                 devices.append(device)
                 device_index += 1
+
+        if enable_tags:
+            for idx, device in enumerate(devices):
+                device["tags"] = generate_tag_set((global_offset + idx) // 1000)
 
         return devices
