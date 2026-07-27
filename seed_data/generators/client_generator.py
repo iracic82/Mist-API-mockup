@@ -391,7 +391,7 @@ class ClientGenerator:
             )
             client["_site_id"] = site_id
             if enable_tags and (global_offset + i) < TAGGED_ASSET_LIMIT:
-                client["tags"] = generate_tag_set((global_offset + i) // 1000)
+                client["tags"] = generate_tag_set(global_offset + i)
             clients.append(client)
         return clients
 
@@ -413,6 +413,6 @@ class ClientGenerator:
                 site_index=site_index,
             )
             if enable_tags and (global_offset + i) < TAGGED_ASSET_LIMIT:
-                client["tags"] = generate_tag_set((global_offset + i) // 1000)
+                client["tags"] = generate_tag_set(global_offset + i)
             clients.append(client)
         return clients
