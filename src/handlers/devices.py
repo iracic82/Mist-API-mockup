@@ -19,6 +19,11 @@ from db.dynamodb import (
 
 logger = logging.getLogger(__name__)
 
+# Lambda's synchronous invocation response is hard-capped at 6 MB. Device
+# records carry a 100-key tag set (~5 KB/device), so a 1000-record page can
+# land right at that ceiling. Cap page size well under it.
+MAX_PAGE_LIMIT = 500
+
 
 def _response(status_code: int, body: Any, extra_headers: dict = None) -> dict:
     """Create API Gateway response."""
@@ -78,7 +83,7 @@ def list_device_stats(topology: str, site_id: str, query_params: dict) -> dict:
     total = len(all_devices)
 
     # Apply pagination
-    limit = int(query_params.get("limit", 1000))
+    limit = min(int(query_params.get("limit", 1000)), MAX_PAGE_LIMIT)
     page = int(query_params.get("page", 1))
     start = (page - 1) * limit
     end = start + limit
@@ -133,7 +138,7 @@ def list_org_device_stats(topology: str, org_id: str, query_params: dict) -> dic
     total = len(all_devices)
 
     # Apply pagination
-    limit = int(query_params.get("limit", 1000))
+    limit = min(int(query_params.get("limit", 1000)), MAX_PAGE_LIMIT)
     page = int(query_params.get("page", 1))
     start = (page - 1) * limit
     end = start + limit
