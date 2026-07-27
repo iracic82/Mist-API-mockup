@@ -54,15 +54,33 @@ def get(path, params=""):
 
 
 def get_all_pages(path, limit=1000):
+    """
+    Page through a page-based endpoint until every record is fetched.
+
+    Uses the X-Page-Total header (the documented contract for these
+    endpoints) rather than "returned < requested" to detect the last page,
+    since the server may cap the effective page size below what was asked
+    for (e.g. to stay under Lambda's 6 MB response ceiling).
+    """
     results = []
     page = 1
+    total = None
     while True:
-        data, _ = get(path, f"limit={limit}&page={page}")
+        data, headers = get(path, f"limit={limit}&page={page}")
         if data is None:
             break
         chunk = data if isinstance(data, list) else data.get("results", [])
         results.extend(chunk)
-        if len(chunk) < limit:
+        if not chunk:
+            break
+        if total is None and headers is not None:
+            page_total = headers.get("X-Page-Total")
+            if page_total is not None:
+                total = int(page_total)
+        if total is not None:
+            if len(results) >= total:
+                break
+        elif len(chunk) < limit:
             break
         page += 1
     return results
