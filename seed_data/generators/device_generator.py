@@ -851,6 +851,6 @@ class DeviceGenerator:
         if enable_tags:
             for idx, device in enumerate(devices):
                 if (global_offset + idx) < TAGGED_ASSET_LIMIT:
-                    device["tags"] = generate_tag_set((global_offset + idx) // 1000)
+                    device["tags"] = generate_tag_set(global_offset + idx)
 
         return devices
