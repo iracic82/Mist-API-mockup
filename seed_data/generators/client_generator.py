@@ -10,6 +10,8 @@ import random
 import string
 import uuid
 from datetime import datetime, timedelta
+
+from seed_data.generators.tag_generator import generate_tag_set
 from typing import Optional
 
 
@@ -371,7 +373,7 @@ class ClientGenerator:
 
     def generate_wireless_clients_for_site(
         self, site_id: str, devices: list[dict], count: int, site_index: int = 0,
-        site_maps: list = None,
+        site_maps: list = None, global_offset: int = 0, enable_tags: bool = False,
     ) -> list[dict]:
         """Generate wireless clients distributed across APs with location data."""
         aps = [d for d in devices if d.get("type") == "ap"]
@@ -387,13 +389,15 @@ class ClientGenerator:
                 client_index=i,
                 site_index=site_index,
             )
-            # Internal field for seeding - tracks parent site
             client["_site_id"] = site_id
+            if enable_tags:
+                client["tags"] = generate_tag_set((global_offset + i) // 1000)
             clients.append(client)
         return clients
 
     def generate_wired_clients_for_site(
-        self, site_id: str, org_id: str, devices: list[dict], count: int, site_index: int = 0
+        self, site_id: str, org_id: str, devices: list[dict], count: int, site_index: int = 0,
+        global_offset: int = 0, enable_tags: bool = False,
     ) -> list[dict]:
         """Generate wired clients distributed across switches."""
         switches = [d for d in devices if d.get("type") == "switch"]
@@ -408,5 +412,7 @@ class ClientGenerator:
                 client_index=i,
                 site_index=site_index,
             )
+            if enable_tags:
+                client["tags"] = generate_tag_set((global_offset + i) // 1000)
             clients.append(client)
         return clients
