@@ -1,14 +1,19 @@
 """
 Tag generator for benchmark topology assets.
 
-Every 1 000 assets share the same 100 tag key-value pairs.
-Tag set index = global_asset_index // 1000, so:
-  1 000 assets  → 1 set   → 100 unique tag values
-  10 000 assets → 10 sets → 1 000 unique tag values
-  150 000 assets → 150 sets → 15 000 unique tag values
+Only the first TAGGED_ASSET_LIMIT assets (by global generation order, across
+devices + wireless_clients + wired_clients) carry a tags field at all. The
+rest of the benchmark dataset is untagged.
+
+Within the tagged range, every 1 000 assets share the same 100 tag
+key-value pairs. Tag set index = global_asset_index // 1000, so with the
+default 1 000-asset limit, all tagged assets fall in a single set and share
+one identical 100-value tag set.
 
 Tag keys: 20 realistic enterprise labels + 80 generic Attr_XXX keys.
 """
+
+TAGGED_ASSET_LIMIT = 1000
 
 _ENVIRONMENTS = ["Prod", "Dev", "Staging", "QA", "UAT"]
 _REGIONS = ["US-East", "US-West", "EU-West", "EU-Central", "AP-South", "AP-East", "LATAM", "ME-Africa"]
