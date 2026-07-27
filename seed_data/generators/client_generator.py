@@ -11,7 +11,7 @@ import string
 import uuid
 from datetime import datetime, timedelta
 
-from seed_data.generators.tag_generator import generate_tag_set
+from seed_data.generators.tag_generator import generate_tag_set, TAGGED_ASSET_LIMIT
 from typing import Optional
 
 
@@ -390,7 +390,7 @@ class ClientGenerator:
                 site_index=site_index,
             )
             client["_site_id"] = site_id
-            if enable_tags:
+            if enable_tags and (global_offset + i) < TAGGED_ASSET_LIMIT:
                 client["tags"] = generate_tag_set((global_offset + i) // 1000)
             clients.append(client)
         return clients
@@ -412,7 +412,7 @@ class ClientGenerator:
                 client_index=i,
                 site_index=site_index,
             )
-            if enable_tags:
+            if enable_tags and (global_offset + i) < TAGGED_ASSET_LIMIT:
                 client["tags"] = generate_tag_set((global_offset + i) // 1000)
             clients.append(client)
         return clients

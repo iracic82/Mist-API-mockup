@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from seed_data.generators.network_generator import ORG_NETWORK_TEMPLATES
-from seed_data.generators.tag_generator import generate_tag_set
+from seed_data.generators.tag_generator import generate_tag_set, TAGGED_ASSET_LIMIT
 
 # Mist device models by type
 MIST_DEVICE_MODELS = {
@@ -850,6 +850,7 @@ class DeviceGenerator:
 
         if enable_tags:
             for idx, device in enumerate(devices):
-                device["tags"] = generate_tag_set((global_offset + idx) // 1000)
+                if (global_offset + idx) < TAGGED_ASSET_LIMIT:
+                    device["tags"] = generate_tag_set((global_offset + idx) // 1000)
 
         return devices
